@@ -1,0 +1,39 @@
+/* ════════════════════════════════════════════════════════════════════
+   ▼  TUTAJ ZMIENIASZ WYGLĄD CAŁEJ STRONY  ▼
+   ════════════════════════════════════════════════════════════════════
+   Wszystkie kolory, czcionki i wymiary aplikacji są zdefiniowane w tym
+   jednym pliku. Zmień wartość → cała aplikacja się przemaluje.
+   Importowane jest to z app/globals.css.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ─── Paleta bazowa (zmień te 3, by zmienić motyw) ─── */
+  --color-anthracite: #353839;  /* Tło główne */
+  --color-teal:       #069494;  /* Akcent — przyciski, linki, lajki */
+  --color-cream:      #FDFBD4;  /* Wyróżnienia — tytuły */
+
+  /* ─── Odcienie (pochodne palety bazowej) ─── */
+  --color-anthracite-2: #2a2c2d;  /* Karty, surface */
+  --color-anthracite-3: #1f2122;  /* Mocniejszy kontrast */
+  --color-teal-light:   #0ab8b8;  /* Hover */
+  --color-teal-dark:    #057272;  /* Active */
+
+  /* ─── Tokeny semantyczne (używaj w komponentach) ─── */
+  --color-bg:           var(--color-anthracite);
+  --color-surface:      var(--color-anthracite-2);
+  --color-surface-2:    var(--color-anthracite-3);
+  --color-primary:      var(--color-teal);
+  --color-accent:       var(--color-cream);
+  --color-text:         #e5e5e5;
+  --color-text-muted:   #a0a0a0;
+  --color-text-dim:     #707070;
+  --color-border:       #3d4042;
+  --color-danger:       #e85757;
+
+  /* ─── Skala (zaokrąglenia, cienie) ─── */
+  --radius-sm: 6px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-soft: 0 2px 12px rgba(0, 0, 0, 0.2);
+}
