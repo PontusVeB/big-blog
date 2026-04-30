@@ -1,37 +1,72 @@
-// Strona główna — placeholder na czas Fazy 0.
-// W Fazie 2 zastąpimy to listą prawdziwych postów z bazy.
+// Strona główna — lista najnowszych postów.
+// Server Component pobiera dane bezpośrednio z bazy (przez Supabase).
 
-export default function HomePage() {
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import PostCard from "@/components/post/PostCard";
+import type { PostWithAuthor } from "@/lib/posts/types";
+
+export default async function HomePage() {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Pobieramy 20 najnowszych postów z autorami
+  const { data: posts } = await supabase
+    .from("posts")
+    .select(
+      `
+      id, title, content, image_url, author_id, created_at, edited_at,
+      author:profiles!author_id (id, nickname, email, avatar_url)
+    `
+    )
+    .order("created_at", { ascending: false })
+    .limit(20)
+    .returns<PostWithAuthor[]>();
+
+  const hasPosts = posts && posts.length > 0;
+
   return (
     <>
-      <section className="hero">
-        <span className="badge">Wersja 0.1 • W budowie</span>
-        <h1>Big Blog</h1>
-        <p>
-          Miejsce do dzielenia się myślami, zdjęciami i historiami.
-          Strona powstaje na żywo — każdy commit ląduje tutaj w 60 sekund.
-        </p>
+      <section className="hero hero-compact">
+        <span className="badge">Big Blog</span>
+        <h1>Co u Ciebie?</h1>
+        <p>Miejsce do dzielenia się myślami, zdjęciami i historiami.</p>
       </section>
 
-      <section className="coming-soon">
-        <h2>Wkrótce</h2>
-        <div className="coming-soon-grid">
-          <div className="coming-soon-card">
-            <div className="icon">🔐</div>
-            <div className="title">Konta i logowanie</div>
-            <div className="desc">Email, Google, Facebook</div>
-          </div>
-          <div className="coming-soon-card">
-            <div className="icon">📝</div>
-            <div className="title">Pisanie postów</div>
-            <div className="desc">Tytuł, treść, zdjęcia</div>
-          </div>
-          <div className="coming-soon-card">
-            <div className="icon">💬</div>
-            <div className="title">Komentarze i lajki</div>
-            <div className="desc">Drzewo dyskusji</div>
-          </div>
+      <section className="posts-feed">
+        <div className="feed-header">
+          <h2>{hasPosts ? "Najnowsze posty" : "Jeszcze nic tu nie ma"}</h2>
+          {user && (
+            <Link href="/posty/nowy" className="btn btn-primary">
+              + Nowy post
+            </Link>
+          )}
         </div>
+
+        {hasPosts ? (
+          <div className="posts-grid">
+            {posts.map((post) => (
+              <PostCard key={post.id} post={post} />
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-icon">📝</div>
+            <h3>Bądź pierwszy</h3>
+            <p>Nikt jeszcze nie napisał posta. Może Ty?</p>
+            {user ? (
+              <Link href="/posty/nowy" className="btn btn-primary">
+                Napisz pierwszy post
+              </Link>
+            ) : (
+              <Link href="/rejestracja" className="btn btn-primary">
+                Załóż konto i napisz post
+              </Link>
+            )}
+          </div>
+        )}
       </section>
     </>
   );
