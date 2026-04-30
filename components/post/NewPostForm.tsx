@@ -1,7 +1,5 @@
 "use client";
-// Formularz nowego posta z emoji pickerem.
-// Emoji picker jest dynamicznie ładowany — pojawia się dopiero gdy klikniesz
-// przycisk z buźką. Dzięki temu nie spowalnia ładowania strony.
+// Formularz nowego posta — z emoji pickerem i drop-zone na zdjęcie hero.
 
 import { useState, useRef } from "react";
 import { useActionState } from "react";
@@ -9,9 +7,8 @@ import { useFormStatus } from "react-dom";
 import dynamic from "next/dynamic";
 import type { EmojiClickData } from "emoji-picker-react";
 import { createPost, type PostFormState } from "@/lib/posts/actions";
+import ImageDropzone from "./ImageDropzone";
 
-// Dynamiczny import — biblioteka emoji-picker-react ma ~150 KB,
-// nie chcemy żeby ładowała się na każdej stronie. ssr: false bo używa window.
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
   loading: () => <div className="emoji-loading">Ładowanie emoji…</div>,
@@ -36,10 +33,10 @@ export default function NewPostForm() {
     null
   );
   const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [showEmoji, setShowEmoji] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Wstawia emoji w miejscu kursora w textarea (zachowuje pozycję)
   function handleEmojiClick(emojiData: EmojiClickData) {
     const textarea = textareaRef.current;
     if (!textarea) {
@@ -51,7 +48,6 @@ export default function NewPostForm() {
     const newContent =
       content.slice(0, start) + emojiData.emoji + content.slice(end);
     setContent(newContent);
-    // Po re-renderze przywróć kursor za wstawionym emoji
     setTimeout(() => {
       textarea.focus();
       const cursor = start + emojiData.emoji.length;
@@ -61,6 +57,13 @@ export default function NewPostForm() {
 
   return (
     <form action={formAction} className="post-form">
+      <div className="field">
+        <label>Zdjęcie hero (opcjonalne)</label>
+        <ImageDropzone onUploaded={setImageUrl} />
+        {/* Hidden input — URL przesyłany jest w formData do Server Action */}
+        <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
+      </div>
+
       <div className="field">
         <label htmlFor="title">Tytuł</label>
         <input
@@ -96,7 +99,7 @@ export default function NewPostForm() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className="input post-textarea"
-          placeholder="Napisz swój post… Możesz wstawić emoji klikając przycisk z buźką po prawej."
+          placeholder="Napisz swój post… Możesz wstawić emoji klikając przycisk po prawej."
         />
         {showEmoji && (
           <div className="emoji-picker-wrapper">
@@ -111,7 +114,7 @@ export default function NewPostForm() {
           </div>
         )}
         <div className="field-help">
-          Linki do filmów (YouTube, TikTok) i postów z X dorzucimy w następnej rundzie — będą się rozwijały do podglądów.
+          Linki do filmów (YouTube, TikTok) i postów z X dorzucimy w następnej rundzie.
         </div>
       </div>
 

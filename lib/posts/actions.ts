@@ -1,5 +1,4 @@
 "use server";
-// Server Actions dla postów.
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -7,15 +6,18 @@ import { createClient } from "@/lib/supabase/server";
 
 export type PostFormState = { error?: string } | null;
 
-// ─── Tworzenie posta ──────────────────────────────────────────
+// ─── Tworzenie posta (z opcjonalnym zdjęciem) ─────────────────
 export async function createPost(
   _prevState: PostFormState,
   formData: FormData
 ): Promise<PostFormState> {
   const title = (formData.get("title") as string)?.trim();
   const content = (formData.get("content") as string)?.trim();
+  const imageUrlRaw = (formData.get("imageUrl") as string)?.trim();
+  // Pusty string traktujemy jako brak zdjęcia (NULL w bazie)
+  const imageUrl = imageUrlRaw && imageUrlRaw.length > 0 ? imageUrlRaw : null;
 
-  // Walidacja podstawowa
+  // Walidacja
   if (!title || !content) {
     return { error: "Tytuł i treść są wymagane." };
   }
@@ -26,7 +28,7 @@ export async function createPost(
     return { error: "Treść jest zbyt długa (max 50 000 znaków)." };
   }
 
-  // Sprawdzamy zalogowanie
+  // Sprawdzenie zalogowania
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,12 +37,13 @@ export async function createPost(
     return { error: "Musisz być zalogowany, aby napisać post." };
   }
 
-  // Wstawiamy posta — RLS sprawdzi, że author_id zgadza się z auth.uid()
+  // Insert — RLS wymusi że author_id = auth.uid()
   const { data: post, error } = await supabase
     .from("posts")
     .insert({
       title,
       content,
+      image_url: imageUrl,
       author_id: user.id,
     })
     .select("id")
@@ -50,7 +53,6 @@ export async function createPost(
     return { error: error?.message ?? "Nie udało się zapisać posta." };
   }
 
-  // Odświeżamy cache strony głównej (lista postów) i przekierowujemy do nowego posta
   revalidatePath("/");
   redirect(`/posty/${post.id}`);
 }
