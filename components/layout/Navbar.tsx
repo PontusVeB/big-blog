@@ -1,80 +1,26 @@
-"use client";
-// Navbar jest komponentem klienckim ("use client"), bo używa stanu (otwarte/zamknięte menu mobilne).
+// Navbar — Server Component (async).
+// Pobiera stan zalogowania z Supabase i przekazuje do klienckiego NavbarClient.
+// Dzięki temu informacja o userze jest dostępna od razu przy renderingu strony,
+// bez "miganiu" stanu niezalogowanego → zalogowanego.
 
-import { useState } from "react";
-import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import NavbarClient, { type NavbarProfile } from "./NavbarClient";
 
-// Linki menu — dorzucanie nowych: dopisz obiekt do tej tablicy.
-// Edytuj w jednym miejscu — pojawiają się i w menu desktop i mobile.
-const links = [
-  { href: "/", label: "Strona główna" },
-  { href: "/najnowsze", label: "Najnowsze" },
-  { href: "/popularne", label: "Popularne" },
-  { href: "/o-blogu", label: "O blogu" },
-];
+export default async function Navbar() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
 
-export default function Navbar() {
-  const [menuOpen, setMenuOpen] = useState(false);
+  let profile: NavbarProfile = null;
 
-  return (
-    <nav className="navbar">
-      {/* Logo + nazwa marki */}
-      <Link href="/" className="brand">
-        <span className="brand-dot">B</span>
-        <span>Big Blog</span>
-      </Link>
+  if (user) {
+    // Pobieramy profil zalogowanego usera (ksywka, avatar, rola)
+    const { data } = await supabase
+      .from("profiles")
+      .select("nickname, avatar_url, email, role")
+      .eq("id", user.id)
+      .single();
+    profile = data;
+  }
 
-      {/* Menu desktop (chowa się na mobile przez CSS) */}
-      <div className="nav-links">
-        {links.map((link) => (
-          <Link key={link.href} href={link.href}>
-            {link.label}
-          </Link>
-        ))}
-      </div>
-
-      {/* Akcje po prawej (login + rejestracja) */}
-      <div className="navbar-right">
-        <Link href="/logowanie" className="btn btn-ghost">
-          Logowanie
-        </Link>
-        <Link href="/rejestracja" className="btn btn-primary">
-          Rejestracja
-        </Link>
-
-        {/* Hamburger — widoczny tylko na mobile (sterowany CSS) */}
-        <button
-          className="hamburger"
-          onClick={() => setMenuOpen(!menuOpen)}
-          aria-label="Menu"
-          aria-expanded={menuOpen}
-        >
-          <span></span>
-          <span></span>
-          <span></span>
-        </button>
-      </div>
-
-      {/* Rozwijane menu mobile — pojawia się po kliknięciu hamburgera */}
-      {menuOpen && (
-        <div className="mobile-menu">
-          {links.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-            >
-              {link.label}
-            </Link>
-          ))}
-          <Link href="/logowanie" onClick={() => setMenuOpen(false)}>
-            Logowanie
-          </Link>
-          <Link href="/rejestracja" onClick={() => setMenuOpen(false)}>
-            Rejestracja
-          </Link>
-        </div>
-      )}
-    </nav>
-  );
+  return <NavbarClient profile={profile} />;
 }

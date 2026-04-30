@@ -1,0 +1,48 @@
+// Schema bazy danych Prismy — źródło prawdy o strukturze danych.
+// Po każdej zmianie tutaj uruchom: npx prisma migrate dev --name <opis>
+// Prisma wygeneruje plik SQL z różnicą i zaaplikuje go do bazy.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")  // pooled connection (port 6543) — do queries
+  directUrl = env("DIRECT_URL")    // direct connection (port 5432) — do migracji
+}
+
+// ════════════════════════════════════════════════════════════════
+//  Profile — rozszerzenie tabeli auth.users z Supabase
+// ════════════════════════════════════════════════════════════════
+// Supabase Auth zarządza tabelą auth.users (id, email, hasło, metadane).
+// My dodajemy własną tabelę profiles z polami specyficznymi dla bloga
+// (ksywka, opis, zdjęcie, rola, uprawnienia).
+//
+// Wpisy do profiles powstają automatycznie przez trigger SQL po
+// rejestracji nowego usera (definicja triggera w migracji ręcznej).
+
+model Profile {
+  // ID = referencja do auth.users.id (UUID generowane przez Supabase)
+  id String @id @db.Uuid
+
+  email       String    @unique
+  nickname    String?
+  bio         String?
+  avatarUrl   String?   @map("avatar_url")
+  role        Role      @default(USER)
+  permissions String[]  @default([])
+  lastSeenAt  DateTime? @map("last_seen_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("profiles")
+}
+
+// Role użytkowników. Dodanie nowej roli (np. MODERATOR) = jedna linia tutaj
+// + jedna linia w lib/auth/permissions.ts. Bez przebudowy aplikacji.
+enum Role {
+  MASTER
+  ADMIN
+  USER
+}
