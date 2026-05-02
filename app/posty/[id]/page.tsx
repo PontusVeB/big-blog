@@ -3,8 +3,8 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeDate, getInitial } from "@/lib/posts/utils";
 import type { PostWithAuthor } from "@/lib/posts/types";
+import RichContent from "@/components/post/RichContent";
 
-// Generowanie metadanych dynamicznie — tytuł karty przeglądarki = tytuł posta
 export async function generateMetadata({
   params,
 }: {
@@ -83,8 +83,10 @@ export default async function PostPage({
         </div>
       </div>
 
-      {/* white-space: pre-wrap zachowuje akapity i emoji wpisane w treść */}
-      <div className="post-content">{post.content}</div>
+      {/* Treść z auto-wykrywaniem embedów (YouTube/X/TikTok/Instagram) */}
+      <div className="post-content">
+        <RichContent content={post.content} />
+      </div>
     </article>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-// Formularz nowego posta — z emoji pickerem i drop-zone na zdjęcie hero.
+// Formularz nowego posta — emoji picker + drop-zone na zdjęcie + wsparcie embedów.
 
 import { useState, useRef } from "react";
 import { useActionState } from "react";
@@ -60,7 +60,6 @@ export default function NewPostForm() {
       <div className="field">
         <label>Zdjęcie hero (opcjonalne)</label>
         <ImageDropzone onUploaded={setImageUrl} />
-        {/* Hidden input — URL przesyłany jest w formData do Server Action */}
         <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
       </div>
 
@@ -99,7 +98,7 @@ export default function NewPostForm() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className="input post-textarea"
-          placeholder="Napisz swój post… Możesz wstawić emoji klikając przycisk po prawej."
+          placeholder="Napisz swój post… Wklejaj linki do YT/TikTok/X/Instagram w osobnej linii — zamienią się na podgląd."
         />
         {showEmoji && (
           <div className="emoji-picker-wrapper">
@@ -114,7 +113,7 @@ export default function NewPostForm() {
           </div>
         )}
         <div className="field-help">
-          Linki do filmów (YouTube, TikTok) i postów z X dorzucimy w następnej rundzie.
+          💡 Wklej link do filmu z <strong>YouTube</strong>, <strong>TikToka</strong>, posta z <strong>X</strong> lub <strong>Instagrama</strong> w osobnej linii — automatycznie zamieni się na ładny podgląd.
         </div>
       </div>
 
