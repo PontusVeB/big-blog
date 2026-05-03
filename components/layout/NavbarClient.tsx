@@ -1,8 +1,13 @@
 "use client";
-// Kliencka część navbara — dla zalogowanych dorzuca przycisk "+ Nowy post".
+// Kliencka część navbara — logo + menu usera + lucide ikony.
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import {
+  Menu, X, LogIn, UserPlus, Plus,
+  User, UserCog, Shield, LogOut, FilePen,
+} from "lucide-react";
 import { logout } from "@/lib/auth/actions";
 
 export type NavbarProfile = {
@@ -41,9 +46,15 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
 
   return (
     <nav className="navbar">
-      <Link href="/" className="brand">
-        <span className="brand-dot">B</span>
-        <span>Big Blog</span>
+      <Link href="/" className="brand" aria-label="Tollerkowo — strona główna">
+        <Image
+          src="/logo.png"
+          alt="Tollerkowo"
+          width={88}
+          height={88}
+          priority
+          className="brand-logo"
+        />
       </Link>
 
       <div className="nav-links">
@@ -58,7 +69,7 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
         {profile ? (
           <>
             <Link href="/posty/nowy" className="btn btn-primary navbar-new-post">
-              + Nowy post
+              <Plus size={16} /> Nowy post
             </Link>
             <div className="user-menu" ref={userMenuRef}>
               <button
@@ -80,23 +91,23 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
                     <div className="email">{profile.email}</div>
                   </div>
                   <Link href="/profil" onClick={() => setUserMenuOpen(false)}>
-                    Mój profil
+                    <User size={16} /> Mój profil
                   </Link>
                   <Link href="/profil/edycja" onClick={() => setUserMenuOpen(false)}>
-                    Edycja profilu
+                    <UserCog size={16} /> Edycja profilu
                   </Link>
                   <Link href="/posty/nowy" onClick={() => setUserMenuOpen(false)}>
-                    + Nowy post
+                    <FilePen size={16} /> Nowy post
                   </Link>
                   {isAdmin && (
                     <Link href="/admin" onClick={() => setUserMenuOpen(false)}>
-                      Panel admina
+                      <Shield size={16} /> Panel admina
                     </Link>
                   )}
                   <div className="user-menu-divider"></div>
                   <form action={logout}>
                     <button type="submit" className="user-menu-logout">
-                      Wyloguj
+                      <LogOut size={16} /> Wyloguj
                     </button>
                   </form>
                 </div>
@@ -106,10 +117,10 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
         ) : (
           <>
             <Link href="/logowanie" className="btn btn-ghost">
-              Logowanie
+              <LogIn size={16} /> Logowanie
             </Link>
             <Link href="/rejestracja" className="btn btn-primary">
-              Rejestracja
+              <UserPlus size={16} /> Rejestracja
             </Link>
           </>
         )}
@@ -120,9 +131,7 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
           aria-label="Menu"
           aria-expanded={menuOpen}
         >
-          <span></span>
-          <span></span>
-          <span></span>
+          {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
       </div>
 
@@ -135,15 +144,15 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
           ))}
           {profile ? (
             <Link href="/posty/nowy" onClick={() => setMenuOpen(false)}>
-              + Nowy post
+              <Plus size={16} /> Nowy post
             </Link>
           ) : (
             <>
               <Link href="/logowanie" onClick={() => setMenuOpen(false)}>
-                Logowanie
+                <LogIn size={16} /> Logowanie
               </Link>
               <Link href="/rejestracja" onClick={() => setMenuOpen(false)}>
-                Rejestracja
+                <UserPlus size={16} /> Rejestracja
               </Link>
             </>
           )}

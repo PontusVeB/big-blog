@@ -1,8 +1,8 @@
 "use client";
 // Komponent uploadu zdjęć — drag & drop + klik.
-// Jeśli `initialUrl` podane (edycja istniejącego posta), startuje z podglądem.
 
 import { useState, useRef, type DragEvent } from "react";
+import { ImagePlus, X as XIcon } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 type Props = {
@@ -22,7 +22,6 @@ export default function ImageDropzone({ onUploaded, initialUrl }: Props) {
 
   async function handleFile(file: File) {
     setError(null);
-
     if (!ALLOWED_TYPES.includes(file.type)) {
       setError("Tylko zdjęcia: JPG, PNG lub WebP.");
       return;
@@ -103,7 +102,7 @@ export default function ImageDropzone({ onUploaded, initialUrl }: Props) {
             onClick={removeImage}
             aria-label="Usuń zdjęcie"
           >
-            ×
+            <XIcon size={18} />
           </button>
         )}
       </div>
@@ -124,7 +123,7 @@ export default function ImageDropzone({ onUploaded, initialUrl }: Props) {
           if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
         }}
       >
-        <div className="drop-icon">🖼️</div>
+        <ImagePlus size={36} className="drop-icon-svg" />
         <div className="drop-title">
           Przeciągnij zdjęcie tutaj lub <strong>kliknij, aby wybrać</strong>
         </div>

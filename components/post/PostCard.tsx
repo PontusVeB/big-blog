@@ -1,12 +1,10 @@
-// Karta posta wyświetlana na liście (strona główna).
-// Server Component — nie używa stanu, tylko renderuje dane.
+// Karta posta na liście.
 
 import Link from "next/link";
+import { ArrowRight } from "lucide-react";
 import type { PostWithAuthor } from "@/lib/posts/types";
 import { formatRelativeDate, truncateContent, getInitial } from "@/lib/posts/utils";
 
-// Gradienty placeholder kiedy post nie ma jeszcze zdjęcia (Round 2A).
-// Dobierany deterministycznie po ID posta — ten sam post = ten sam gradient.
 const GRADIENTS = ["img-grad-1", "img-grad-2", "img-grad-3", "img-grad-4", "img-grad-5"];
 function pickGradient(id: string): string {
   let hash = 0;
@@ -50,7 +48,9 @@ export default function PostCard({ post }: { post: PostWithAuthor }) {
         </div>
         <div className="body">
           <p className="excerpt">{truncateContent(post.content, 200)}</p>
-          <span className="read-more">Czytaj dalej →</span>
+          <span className="read-more">
+            Czytaj dalej <ArrowRight size={14} />
+          </span>
         </div>
       </Link>
     </article>

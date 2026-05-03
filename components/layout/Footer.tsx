@@ -1,15 +1,17 @@
-// Footer jest komponentem serwerowym (renderowany na backendzie, statyczny HTML).
-// Nie potrzebuje "use client", bo nie ma stanu ani efektów.
+// Stopka — krótkie info o autorach + drobne odnośniki.
+
+import { Heart } from "lucide-react";
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
     <footer className="footer">
-      <div className="brand-mini">Big Blog</div>
-      <div>
-        © {year} • Stworzony z <span style={{ color: "var(--color-danger)" }}>♥</span> na Next.js + Supabase + Vercel
+      <div className="brand-mini">Tollerkowo</div>
+      <div className="footer-line">
+        Stworzony z <Heart size={14} className="footer-heart" /> przez Piotra &amp; Kobe • {year}
       </div>
+      <div className="footer-tech">Next.js · Supabase · Vercel</div>
     </footer>
   );
 }

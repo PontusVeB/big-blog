@@ -1,8 +1,7 @@
-// PostActions — przyciski edycji i usuwania posta.
-// Server Component (decyzje o widoczności robimy serwerowo z dostępem do profilu).
-// DeleteButton w środku jest klientem — potrzebuje confirm() i transition.
+// PostActions — przyciski edycji i usuwania.
 
 import Link from "next/link";
+import { Pencil } from "lucide-react";
 import DeleteButton from "./DeleteButton";
 
 type Props = {
@@ -12,14 +11,13 @@ type Props = {
 };
 
 export default function PostActions({ postId, canEdit, canDelete }: Props) {
-  // Brak uprawnień = brak komponentu (czyste UI)
   if (!canEdit && !canDelete) return null;
 
   return (
     <div className="post-actions">
       {canEdit && (
         <Link href={`/posty/${postId}/edytuj`} className="btn btn-secondary">
-          ✏️ Edytuj
+          <Pencil size={16} /> Edytuj
         </Link>
       )}
       {canDelete && <DeleteButton postId={postId} />}

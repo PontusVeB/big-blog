@@ -1,11 +1,10 @@
 "use client";
-// Formularz edycji profilu — avatar (cropper + kompresja), ksywka (z emoji),
-// bio, e-mail (read-only).
 
 import { useState, useRef } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import dynamic from "next/dynamic";
+import { Smile, CheckCircle2 } from "lucide-react";
 import type { EmojiClickData } from "emoji-picker-react";
 import { updateProfile, type ProfileFormState } from "@/lib/profiles/actions";
 import AvatarUpload from "./AvatarUpload";
@@ -44,7 +43,6 @@ export default function ProfileEditForm({ initial }: Props) {
   const [showEmoji, setShowEmoji] = useState(false);
   const nicknameRef = useRef<HTMLInputElement>(null);
 
-  // Pierwsza litera maila do placeholdera avatara
   const placeholderInitial = (initial.nickname || initial.email)[0].toUpperCase();
 
   function insertEmojiToNick(emoji: EmojiClickData) {
@@ -86,7 +84,7 @@ export default function ProfileEditForm({ initial }: Props) {
             aria-label="Wstaw emoji"
             title="Wstaw emoji"
           >
-            😀
+            <Smile size={18} />
           </button>
         </div>
         <input
@@ -142,7 +140,7 @@ export default function ProfileEditForm({ initial }: Props) {
           maxLength={500}
           rows={4}
           className="input"
-          placeholder="Krótko o sobie (opcjonalnie)"
+          placeholder="Krótko o sobie i swoim Tollerze (opcjonalnie)"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
         />
@@ -151,7 +149,9 @@ export default function ProfileEditForm({ initial }: Props) {
 
       {state?.error && <div className="auth-error">{state.error}</div>}
       {state?.success && (
-        <div className="auth-success">✓ Zmiany zapisane!</div>
+        <div className="auth-success">
+          <CheckCircle2 size={16} /> Zmiany zapisane!
+        </div>
       )}
 
       <div className="post-form-actions">

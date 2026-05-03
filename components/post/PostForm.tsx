@@ -1,12 +1,11 @@
 "use client";
-// Uniwersalny formularz posta — obsługuje zarówno tworzenie jak i edycję.
-// Tryb wybierany przez prop `mode`. W trybie "edit" akcja używa updatePost
-// i wstawia ukryty input z ID posta + pre-fill pól.
+// Uniwersalny formularz posta — create + edit.
 
 import { useState, useRef } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import dynamic from "next/dynamic";
+import { Smile } from "lucide-react";
 import type { EmojiClickData } from "emoji-picker-react";
 import { createPost, updatePost, type PostFormState } from "@/lib/posts/actions";
 import ImageDropzone from "./ImageDropzone";
@@ -32,20 +31,18 @@ function SubmitButton({ mode }: { mode: "create" | "edit" }) {
     create: { idle: "Publikuj post", busy: "Publikowanie…" },
     edit: { idle: "Zapisz zmiany", busy: "Zapisywanie…" },
   };
-  const label = pending ? labels[mode].busy : labels[mode].idle;
   return (
     <button
       type="submit"
       disabled={pending}
       className="btn btn-primary auth-submit"
     >
-      {label}
+      {pending ? labels[mode].busy : labels[mode].idle}
     </button>
   );
 }
 
 export default function PostForm({ mode, initial }: PostFormProps) {
-  // Wybór akcji w zależności od trybu
   const action = mode === "edit" ? updatePost : createPost;
   const [state, formAction] = useActionState<PostFormState, FormData>(action, null);
 
@@ -63,8 +60,7 @@ export default function PostForm({ mode, initial }: PostFormProps) {
     }
     const start = textarea.selectionStart;
     const end = textarea.selectionEnd;
-    const newContent =
-      content.slice(0, start) + emojiData.emoji + content.slice(end);
+    const newContent = content.slice(0, start) + emojiData.emoji + content.slice(end);
     setContent(newContent);
     setTimeout(() => {
       textarea.focus();
@@ -75,7 +71,6 @@ export default function PostForm({ mode, initial }: PostFormProps) {
 
   return (
     <form action={formAction} className="post-form">
-      {/* Hidden input z ID — tylko w trybie edycji */}
       {mode === "edit" && initial && (
         <input type="hidden" name="id" value={initial.id} />
       )}
@@ -115,7 +110,7 @@ export default function PostForm({ mode, initial }: PostFormProps) {
             aria-label="Wstaw emoji"
             title="Wstaw emoji"
           >
-            😀
+            <Smile size={18} />
           </button>
         </div>
         <textarea
@@ -143,7 +138,7 @@ export default function PostForm({ mode, initial }: PostFormProps) {
         <div className="field-help">
           💡 Wklej link do filmu z <strong>YouTube</strong>, <strong>TikToka</strong>,
           posta z <strong>X</strong> lub <strong>Instagrama</strong> w osobnej linii —
-          automatycznie zamieni się na ładny podgląd.
+          zamieni się na podgląd.
         </div>
       </div>
 

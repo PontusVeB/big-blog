@@ -1,7 +1,9 @@
-// Strona główna — lista najnowszych postów.
-// Server Component pobiera dane bezpośrednio z bazy (przez Supabase).
+// Strona główna — Toller-themed.
+// Faza 4 zastąpi placeholder kart prawdziwą integracją z postami z bazy
+// (już mamy w aplikacji, tu hero + sekcje wprowadzające).
 
 import Link from "next/link";
+import { PawPrint, MessageCircle, ImagePlus, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/post/PostCard";
 import type { PostWithAuthor } from "@/lib/posts/types";
@@ -12,7 +14,6 @@ export default async function HomePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Pobieramy 20 najnowszych postów z autorami
   const { data: posts } = await supabase
     .from("posts")
     .select(
@@ -30,9 +31,15 @@ export default async function HomePage() {
   return (
     <>
       <section className="hero hero-compact">
-        <span className="badge">Big Blog</span>
-        <h1>Co u Ciebie?</h1>
-        <p>Miejsce do dzielenia się myślami, zdjęciami i historiami.</p>
+        <span className="badge badge-warm">
+          <PawPrint size={14} /> Społeczność miłośników Tollerów
+        </span>
+        <h1>Tollerkowo</h1>
+        <p>
+          Miejsce, gdzie opiekunowie Tollerów dzielą się historiami,
+          zdjęciami i radami. Sport, zdrowie, hodowla, codzienne życie z rasą —
+          wszystko od ludzi, którzy żyją tym samym co Ty.
+        </p>
       </section>
 
       <section className="posts-feed">
@@ -53,9 +60,9 @@ export default async function HomePage() {
           </div>
         ) : (
           <div className="empty-state">
-            <div className="empty-icon">📝</div>
+            <PawPrint size={48} className="empty-icon-svg" />
             <h3>Bądź pierwszy</h3>
-            <p>Nikt jeszcze nie napisał posta. Może Ty?</p>
+            <p>Nikt jeszcze nie napisał posta. Może opowiesz o swoim Tollerze?</p>
             {user ? (
               <Link href="/posty/nowy" className="btn btn-primary">
                 Napisz pierwszy post
@@ -67,6 +74,27 @@ export default async function HomePage() {
             )}
           </div>
         )}
+      </section>
+
+      {/* Sekcja "co znajdziesz" — pokazuje rodzaje treści, niezależnie od liczby postów */}
+      <section className="features">
+        <div className="features-grid">
+          <div className="feature-card">
+            <div className="feature-icon"><MessageCircle size={24} /></div>
+            <h4>Rozmowy</h4>
+            <p>Pytaj, dziel się doświadczeniami z innymi opiekunami Tollerów.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon"><ImagePlus size={24} /></div>
+            <h4>Zdjęcia</h4>
+            <p>Wrzucaj fotki swojego pieska — w rumowiskach lub na kanapie.</p>
+          </div>
+          <div className="feature-card">
+            <div className="feature-icon"><Users size={24} /></div>
+            <h4>Społeczność</h4>
+            <p>Spotkania, treningi, hodowle — łączymy ludzi z tym samym hobby.</p>
+          </div>
+        </div>
       </section>
     </>
   );

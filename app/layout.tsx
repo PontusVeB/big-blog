@@ -4,8 +4,6 @@ import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import "./globals.css";
 
-// Czcionki ładowane przez Next.js next/font (auto-optymalizacja, brak CDN, brak FOUT)
-// "latin-ext" jest WAŻNE — bez tego polskie znaki ą, ę, ł, ż wyglądają źle
 const inter = Inter({
   subsets: ["latin", "latin-ext"],
   variable: "--font-inter",
@@ -18,15 +16,20 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-// Metadane strony — pojawiają się w tytule karty przeglądarki, w wynikach Google,
-// w podglądach na Facebooku/Twitterze. Edycja tutaj = zmiana w całej aplikacji.
+// Metadane strony — pojawiają się w karcie przeglądarki, w wynikach Google,
+// w podglądach na Facebooku/X. Edycja tutaj = zmiana w całej aplikacji.
 export const metadata: Metadata = {
-  title: "Big Blog",
-  description: "Mój pierwszy projekt webowy — Next.js + Supabase",
+  title: {
+    default: "Tollerkowo",
+    template: "%s • Tollerkowo",
+  },
+  description:
+    "Społeczność miłośników Tollerów (Nova Scotia Duck Tolling Retriever). Dziel się przygodami, zdjęciami i radami z innymi opiekunami rasy.",
+  icons: {
+    icon: "/logo.png",
+  },
 };
 
-// Główny layout aplikacji — opakowuje wszystkie podstrony nagłówkiem i stopką.
-// Każda nowa podstrona (np. /posty, /profil) automatycznie dziedziczy ten layout.
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
