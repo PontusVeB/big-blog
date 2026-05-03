@@ -1,18 +1,15 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import NewPostForm from "@/components/post/NewPostForm";
+import PostForm from "@/components/post/PostForm";
 
 export const metadata: Metadata = {
   title: "Nowy post • Big Blog",
 };
 
 export default async function NewPostPage() {
-  // Pisać posty mogą tylko zalogowani — niezalogowanego odsyłamy do logowania
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/logowanie?next=/posty/nowy");
 
   return (
@@ -23,7 +20,7 @@ export default async function NewPostPage() {
           Po publikacji masz 30 minut na poprawki — potem post staje się publiczny na zawsze.
         </p>
       </header>
-      <NewPostForm />
+      <PostForm mode="create" />
     </div>
   );
 }

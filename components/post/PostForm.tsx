@@ -1,12 +1,14 @@
 "use client";
-// Formularz nowego posta — emoji picker + drop-zone na zdjęcie + wsparcie embedów.
+// Uniwersalny formularz posta — obsługuje zarówno tworzenie jak i edycję.
+// Tryb wybierany przez prop `mode`. W trybie "edit" akcja używa updatePost
+// i wstawia ukryty input z ID posta + pre-fill pól.
 
 import { useState, useRef } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import dynamic from "next/dynamic";
 import type { EmojiClickData } from "emoji-picker-react";
-import { createPost, type PostFormState } from "@/lib/posts/actions";
+import { createPost, updatePost, type PostFormState } from "@/lib/posts/actions";
 import ImageDropzone from "./ImageDropzone";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
@@ -14,26 +16,42 @@ const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   loading: () => <div className="emoji-loading">Ładowanie emoji…</div>,
 });
 
-function SubmitButton() {
+type PostFormProps = {
+  mode: "create" | "edit";
+  initial?: {
+    id: string;
+    title: string;
+    content: string;
+    imageUrl: string | null;
+  };
+};
+
+function SubmitButton({ mode }: { mode: "create" | "edit" }) {
   const { pending } = useFormStatus();
+  const labels = {
+    create: { idle: "Publikuj post", busy: "Publikowanie…" },
+    edit: { idle: "Zapisz zmiany", busy: "Zapisywanie…" },
+  };
+  const label = pending ? labels[mode].busy : labels[mode].idle;
   return (
     <button
       type="submit"
       disabled={pending}
       className="btn btn-primary auth-submit"
     >
-      {pending ? "Publikowanie…" : "Publikuj post"}
+      {label}
     </button>
   );
 }
 
-export default function NewPostForm() {
-  const [state, formAction] = useActionState<PostFormState, FormData>(
-    createPost,
-    null
-  );
-  const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState<string | null>(null);
+export default function PostForm({ mode, initial }: PostFormProps) {
+  // Wybór akcji w zależności od trybu
+  const action = mode === "edit" ? updatePost : createPost;
+  const [state, formAction] = useActionState<PostFormState, FormData>(action, null);
+
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [content, setContent] = useState(initial?.content ?? "");
+  const [imageUrl, setImageUrl] = useState<string | null>(initial?.imageUrl ?? null);
   const [showEmoji, setShowEmoji] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -57,9 +75,17 @@ export default function NewPostForm() {
 
   return (
     <form action={formAction} className="post-form">
+      {/* Hidden input z ID — tylko w trybie edycji */}
+      {mode === "edit" && initial && (
+        <input type="hidden" name="id" value={initial.id} />
+      )}
+
       <div className="field">
         <label>Zdjęcie hero (opcjonalne)</label>
-        <ImageDropzone onUploaded={setImageUrl} />
+        <ImageDropzone
+          onUploaded={setImageUrl}
+          initialUrl={initial?.imageUrl}
+        />
         <input type="hidden" name="imageUrl" value={imageUrl ?? ""} />
       </div>
 
@@ -74,6 +100,8 @@ export default function NewPostForm() {
           autoComplete="off"
           className="input"
           placeholder="Krótki, chwytliwy tytuł"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
         />
       </div>
 
@@ -98,7 +126,7 @@ export default function NewPostForm() {
           value={content}
           onChange={(e) => setContent(e.target.value)}
           className="input post-textarea"
-          placeholder="Napisz swój post… Wklejaj linki do YT/TikTok/X/Instagram w osobnej linii — zamienią się na podgląd."
+          placeholder="Napisz swój post… Wklejaj linki do YT/TikTok/X/Instagram w osobnej linii."
         />
         {showEmoji && (
           <div className="emoji-picker-wrapper">
@@ -113,14 +141,16 @@ export default function NewPostForm() {
           </div>
         )}
         <div className="field-help">
-          💡 Wklej link do filmu z <strong>YouTube</strong>, <strong>TikToka</strong>, posta z <strong>X</strong> lub <strong>Instagrama</strong> w osobnej linii — automatycznie zamieni się na ładny podgląd.
+          💡 Wklej link do filmu z <strong>YouTube</strong>, <strong>TikToka</strong>,
+          posta z <strong>X</strong> lub <strong>Instagrama</strong> w osobnej linii —
+          automatycznie zamieni się na ładny podgląd.
         </div>
       </div>
 
       {state?.error && <div className="auth-error">{state.error}</div>}
 
       <div className="post-form-actions">
-        <SubmitButton />
+        <SubmitButton mode={mode} />
       </div>
     </form>
   );

@@ -1,68 +1,56 @@
 "use client";
 // Komponent uploadu zdjęć — drag & drop + klik.
-// Uploaduje plik do Supabase Storage od razu po wyborze (live podgląd),
-// zwraca publiczny URL do nadrzędnego komponentu (NewPostForm).
+// Jeśli `initialUrl` podane (edycja istniejącego posta), startuje z podglądem.
 
 import { useState, useRef, type DragEvent } from "react";
 import { createClient } from "@/lib/supabase/client";
 
 type Props = {
   onUploaded: (url: string | null) => void;
+  initialUrl?: string | null;
 };
 
 const MAX_SIZE_MB = 5;
 const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
-export default function ImageDropzone({ onUploaded }: Props) {
+export default function ImageDropzone({ onUploaded, initialUrl }: Props) {
   const [uploading, setUploading] = useState(false);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(initialUrl ?? null);
   const [error, setError] = useState<string | null>(null);
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Walidacja + upload
   async function handleFile(file: File) {
     setError(null);
 
-    // Walidacja typu
     if (!ALLOWED_TYPES.includes(file.type)) {
       setError("Tylko zdjęcia: JPG, PNG lub WebP.");
       return;
     }
-    // Walidacja rozmiaru
     if (file.size > MAX_SIZE_MB * 1024 * 1024) {
       setError(`Plik jest za duży (max ${MAX_SIZE_MB} MB).`);
       return;
     }
 
     setUploading(true);
-    // Lokalny podgląd zanim Supabase odpowie — szybki feedback dla usera
     const localPreview = URL.createObjectURL(file);
     setPreview(localPreview);
 
     try {
       const supabase = createClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         setError("Musisz być zalogowany.");
         setUploading(false);
         return;
       }
 
-      // Generujemy unikalną nazwę pliku.
-      // Konwencja: {user_id}/{uuid}.{ext}
-      // Folder = user_id pozwala RLS ograniczyć zapis tylko do "swojego" katalogu.
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
 
       const { error: uploadError } = await supabase.storage
         .from("post-images")
-        .upload(path, file, {
-          cacheControl: "3600",
-          upsert: false,
-        });
+        .upload(path, file, { cacheControl: "3600", upsert: false });
 
       if (uploadError) {
         setError(uploadError.message);
@@ -70,12 +58,10 @@ export default function ImageDropzone({ onUploaded }: Props) {
         return;
       }
 
-      // Pobieramy publiczny URL do wstawienia do posta
-      const {
-        data: { publicUrl },
-      } = supabase.storage.from("post-images").getPublicUrl(path);
+      const { data: { publicUrl } } = supabase.storage
+        .from("post-images")
+        .getPublicUrl(path);
 
-      // Aktualizacja podglądu na URL z Supabase (zamiast lokalnego blob URL)
       setPreview(publicUrl);
       onUploaded(publicUrl);
     } catch (e) {
@@ -85,14 +71,8 @@ export default function ImageDropzone({ onUploaded }: Props) {
     }
   }
 
-  // Drag & drop handlery
-  function onDragOver(e: DragEvent) {
-    e.preventDefault();
-    setDragging(true);
-  }
-  function onDragLeave() {
-    setDragging(false);
-  }
+  function onDragOver(e: DragEvent) { e.preventDefault(); setDragging(true); }
+  function onDragLeave() { setDragging(false); }
   function onDrop(e: DragEvent) {
     e.preventDefault();
     setDragging(false);
@@ -107,7 +87,6 @@ export default function ImageDropzone({ onUploaded }: Props) {
     if (inputRef.current) inputRef.current.value = "";
   }
 
-  // Jeśli mamy podgląd — pokaż go z opcją usunięcia
   if (preview) {
     return (
       <div className="dropzone-preview">
@@ -131,7 +110,6 @@ export default function ImageDropzone({ onUploaded }: Props) {
     );
   }
 
-  // Pusty stan — drop zone do upuszczenia/wyboru pliku
   return (
     <div>
       <div

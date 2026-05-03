@@ -802,3 +802,183 @@ img { max-width: 100%; display: block; }
 .single-post .post-content {
   white-space: normal;
 }
+
+
+/* Pasek akcji nad treścią posta */
+.post-actions {
+  max-width: 760px;
+  margin: 16px auto 0;
+  padding: 0 24px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* Przycisk "danger" — używany do destrukcyjnych akcji jak Usuń */
+.btn-danger {
+  background: transparent;
+  color: var(--color-danger);
+  border: 1px solid rgba(232, 87, 87, 0.4);
+}
+.btn-danger:hover {
+  background: rgba(232, 87, 87, 0.1);
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+.btn-danger:disabled:hover {
+  background: transparent;
+}
+
+/* Przycisk "secondary" — dla mniej eksponowanych akcji jak Edytuj */
+.btn-secondary {
+  background: transparent;
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+}
+.btn-secondary:hover {
+  border-color: var(--color-teal);
+  color: var(--color-teal-light);
+}
+
+@media (max-width: 720px) {
+  .post-actions {
+    margin-top: 12px;
+    padding: 0 20px;
+  }
+}
+
+/* ════════════════════════════════════════════════
+   AVATAR UPLOAD (formularz profilu)
+   ════════════════════════════════════════════════ */
+.avatar-upload {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  flex-wrap: wrap;
+}
+.avatar-preview {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--color-teal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 36px;
+  font-weight: 600;
+  font-family: var(--font-inter), sans-serif;
+}
+.avatar-upload-info {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.avatar-upload-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ════════════════════════════════════════════════
+   CROPPER MODAL
+   ════════════════════════════════════════════════ */
+.cropper-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.85);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.cropper-modal {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  width: 100%;
+  max-width: 500px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+.cropper-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.cropper-header h3 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 18px;
+  color: var(--color-cream);
+}
+.cropper-header .close {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  font-size: 22px;
+  color: var(--color-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.cropper-header .close:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--color-cream);
+}
+.cropper-area {
+  position: relative;
+  width: 100%;
+  height: 380px;
+  background: black;
+}
+.cropper-controls {
+  padding: 16px 20px;
+  border-top: 1px solid var(--color-border);
+}
+.cropper-controls label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.cropper-controls input[type="range"] {
+  width: 100%;
+  accent-color: var(--color-teal);
+  cursor: pointer;
+}
+.cropper-actions {
+  padding: 16px 20px;
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+  border-top: 1px solid var(--color-border);
+}
+
+/* ════════════════════════════════════════════════
+   AUTH-SUCCESS (zielony banner po zapisie)
+   ════════════════════════════════════════════════ */
+.auth-success {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #10b981;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+}

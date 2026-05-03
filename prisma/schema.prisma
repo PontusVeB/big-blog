@@ -1,5 +1,4 @@
 // Schema bazy danych Prismy — źródło prawdy o strukturze danych.
-// Po każdej zmianie tutaj uruchom: npx prisma migrate dev --name <opis>
 
 generator client {
   provider = "prisma-client-js"
@@ -12,22 +11,24 @@ datasource db {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  Profile — rozszerzenie tabeli auth.users z Supabase
+//  Profile
 // ════════════════════════════════════════════════════════════════
 model Profile {
   id String @id @db.Uuid
 
   email       String    @unique
-  nickname    String?
+  // nickname unikalna w całym serwisie. Wartości NULL są dopuszczone wielokrotnie
+  // (Postgres traktuje NULL-e jako różne w UNIQUE), więc świeży user bez ksywki
+  // nie blokuje innych — limit dotyczy tylko ustawionych ksywek.
+  nickname    String?   @unique
   bio         String?
   avatarUrl   String?   @map("avatar_url")
   role        Role      @default(USER)
   permissions String[]  @default([])
-  lastSeenAt  DateTime? @map("last_seen_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at")
+  lastSeenAt  DateTime? @db.Timestamptz(3) @map("last_seen_at")
+  createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
 
-  // Relacje (rosną razem z aplikacją)
   posts Post[]
 
   @@map("profiles")
@@ -40,18 +41,18 @@ enum Role {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  Post — wpis blogowy
+//  Post
 // ════════════════════════════════════════════════════════════════
 model Post {
   id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title     String    @db.VarChar(200)
   content   String    @db.Text
-  imageUrl  String?   @map("image_url")  // null dopóki nie dodamy uploadu w Round 2B
+  imageUrl  String?   @map("image_url")
   authorId  String    @db.Uuid @map("author_id")
   author    Profile   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @default(now()) @updatedAt @map("updated_at")
-  editedAt  DateTime? @map("edited_at")
+  createdAt DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
+  editedAt  DateTime? @db.Timestamptz(3) @map("edited_at")
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId])
