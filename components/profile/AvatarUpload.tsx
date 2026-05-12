@@ -1,19 +1,18 @@
 "use client";
-// Avatar upload z cropperem.
-// Flow: klik "Wgraj zdjęcie" → file picker → wybierasz plik → modal cropper
-// → potwierdzasz wycinek → upload do Storage → URL ląduje w state rodzica.
+// Avatar upload — używa generycznego ImageCroppera z ustawieniami dla avatara
+// (kółko 1:1, output 256x256, kompresja jakości 0.85).
 
 import { useState, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
-import AvatarCropper from "./AvatarCropper";
+import ImageCropper from "@/components/shared/ImageCropper";
 
 type Props = {
   currentUrl: string | null;
-  initial: string; // litera placeholder gdy brak zdjęcia
+  initial: string;
   onUploaded: (url: string | null) => void;
 };
 
-const MAX_INPUT_SIZE_MB = 10; // przed kompresją; po canvas-resize avatar < 100 KB
+const MAX_INPUT_SIZE_MB = 10;
 
 export default function AvatarUpload({ currentUrl, initial, onUploaded }: Props) {
   const [previewUrl, setPreviewUrl] = useState<string | null>(currentUrl);
@@ -34,15 +33,12 @@ export default function AvatarUpload({ currentUrl, initial, onUploaded }: Props)
       setError(`Plik wejściowy max ${MAX_INPUT_SIZE_MB} MB.`);
       return;
     }
-    // Otwieramy cropper z lokalnym podglądem (object URL)
     const url = URL.createObjectURL(file);
     setCropperImage(url);
-    // Reset input — pozwala wybrać ten sam plik ponownie
     if (inputRef.current) inputRef.current.value = "";
   }
 
   async function handleCropConfirm(blob: Blob) {
-    // Zamknij modal, zacznij upload
     setCropperImage(null);
     setUploading(true);
     setError(null);
@@ -56,7 +52,6 @@ export default function AvatarUpload({ currentUrl, initial, onUploaded }: Props)
         return;
       }
 
-      // Konwencja ścieżki: {user_id}/{uuid}.jpg
       const path = `${user.id}/${crypto.randomUUID()}.jpg`;
 
       const { error: uploadError } = await supabase.storage
@@ -139,10 +134,15 @@ export default function AvatarUpload({ currentUrl, initial, onUploaded }: Props)
       </div>
       {error && <div className="auth-error" style={{ marginTop: 8 }}>{error}</div>}
 
-      {/* Modal z cropperem — render warunkowy */}
       {cropperImage && (
-        <AvatarCropper
+        <ImageCropper
           imageSrc={cropperImage}
+          aspect={1}
+          cropShape="round"
+          outputWidth={256}
+          outputHeight={256}
+          jpegQuality={0.85}
+          title="Dopasuj zdjęcie profilowe"
           onConfirm={handleCropConfirm}
           onCancel={() => {
             URL.revokeObjectURL(cropperImage);

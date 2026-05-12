@@ -1,22 +1,40 @@
 "use client";
-// Modal z cropperem zdjęcia — kółko 1:1.
-// Po zatwierdzeniu zwraca skompresowany Blob (JPEG 256x256, jakość ~0.85).
-// Dzięki canvas-resize avatar nigdy nie waży więcej niż ~50 KB,
-// niezależnie od oryginalnego rozmiaru.
+// Generyczny cropper zdjęć — używany w dwóch miejscach:
+//   1. AvatarUpload — kółko 1:1, output 256x256
+//   2. ImageDropzone (post hero) — prostokąt 16:9, output 1600x900
+// Po zatwierdzeniu zwraca skompresowany Blob JPEG.
 
 import { useState, useCallback } from "react";
 import Cropper, { type Area } from "react-easy-crop";
 
 type Props = {
   imageSrc: string;
+  /** Proporcje kadru — 1 dla kwadratu, 16/9 dla post-hero, itp. */
+  aspect?: number;
+  /** Kształt obrysu w cropperze — "round" dla avatara, "rect" dla zdjęć postów */
+  cropShape?: "round" | "rect";
+  /** Wymiary docelowe wyjściowego JPEG-a (canvas resize) */
+  outputWidth?: number;
+  outputHeight?: number;
+  /** Jakość kompresji JPEG (0.0 - 1.0). 0.85-0.9 daje dobry balans rozmiaru/jakości. */
+  jpegQuality?: number;
+  /** Tytuł modala (np. "Dopasuj zdjęcie profilowe") */
+  title?: string;
   onConfirm: (blob: Blob) => void;
   onCancel: () => void;
 };
 
-const OUTPUT_SIZE = 256; // wymiary docelowe avatara w pikselach
-const JPEG_QUALITY = 0.85;
-
-export default function AvatarCropper({ imageSrc, onConfirm, onCancel }: Props) {
+export default function ImageCropper({
+  imageSrc,
+  aspect = 1,
+  cropShape = "rect",
+  outputWidth = 1600,
+  outputHeight = 900,
+  jpegQuality = 0.88,
+  title = "Dopasuj kadr",
+  onConfirm,
+  onCancel,
+}: Props) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedArea, setCroppedArea] = useState<Area | null>(null);
@@ -30,7 +48,13 @@ export default function AvatarCropper({ imageSrc, onConfirm, onCancel }: Props) 
     if (!croppedArea) return;
     setBusy(true);
     try {
-      const blob = await cropToBlob(imageSrc, croppedArea);
+      const blob = await cropToBlob(
+        imageSrc,
+        croppedArea,
+        outputWidth,
+        outputHeight,
+        jpegQuality
+      );
       onConfirm(blob);
     } finally {
       setBusy(false);
@@ -41,7 +65,7 @@ export default function AvatarCropper({ imageSrc, onConfirm, onCancel }: Props) 
     <div className="cropper-overlay" onClick={onCancel}>
       <div className="cropper-modal" onClick={(e) => e.stopPropagation()}>
         <div className="cropper-header">
-          <h3>Dopasuj kadr</h3>
+          <h3>{title}</h3>
           <button onClick={onCancel} className="close" aria-label="Zamknij">×</button>
         </div>
 
@@ -50,9 +74,9 @@ export default function AvatarCropper({ imageSrc, onConfirm, onCancel }: Props) 
             image={imageSrc}
             crop={crop}
             zoom={zoom}
-            aspect={1}
-            cropShape="round"
-            showGrid={false}
+            aspect={aspect}
+            cropShape={cropShape}
+            showGrid={cropShape === "rect"}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}
@@ -92,29 +116,32 @@ export default function AvatarCropper({ imageSrc, onConfirm, onCancel }: Props) 
 }
 
 // ─── Pomocnicze: crop + resize + kompresja przez canvas ─────────────
-async function cropToBlob(imageSrc: string, area: Area): Promise<Blob> {
+async function cropToBlob(
+  imageSrc: string,
+  area: Area,
+  outputWidth: number,
+  outputHeight: number,
+  jpegQuality: number
+): Promise<Blob> {
   const image = await loadImage(imageSrc);
-
-  // Tworzymy canvas o docelowych wymiarach (256x256)
   const canvas = document.createElement("canvas");
-  canvas.width = OUTPUT_SIZE;
-  canvas.height = OUTPUT_SIZE;
+  canvas.width = outputWidth;
+  canvas.height = outputHeight;
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Brak wsparcia canvas 2D w przeglądarce.");
 
-  // Wycinamy z oryginału obszar zaznaczony w cropperze i skalujemy do 256x256
+  // Wycinamy z oryginału obszar zaznaczony w cropperze i skalujemy
   ctx.drawImage(
     image,
     area.x, area.y, area.width, area.height,
-    0, 0, OUTPUT_SIZE, OUTPUT_SIZE
+    0, 0, outputWidth, outputHeight
   );
 
-  // Eksport jako JPEG z kompresją
   return new Promise<Blob>((resolve, reject) => {
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error("Nie udało się utworzyć blob"))),
       "image/jpeg",
-      JPEG_QUALITY
+      jpegQuality
     );
   });
 }
