@@ -1,6 +1,4 @@
 // Typy współdzielone dla modułu postów.
-// Definiujemy ręcznie zamiast generować z Supabase, bo dla MVP wystarczy.
-// W przyszłości można dorzucić `npx supabase gen types` dla pełnej automatyki.
 
 export type PostAuthor = {
   id: string;
@@ -17,5 +15,12 @@ export type PostWithAuthor = {
   author_id: string;
   created_at: string;
   edited_at: string | null;
+  likes_count: number;
   author: PostAuthor | null;
+};
+
+// Wzbogacenie postem o flagę "czy aktualnie zalogowany user polubił".
+// Używane w widoku karty i pojedynczego posta do podświetlenia serca.
+export type PostWithLikeState = PostWithAuthor & {
+  liked_by_me: boolean;
 };

@@ -1,9 +1,10 @@
-// Karta posta na liście.
+// Karta posta. Footer poza Link żeby lajk działał niezależnie od nawigacji.
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import type { PostWithAuthor } from "@/lib/posts/types";
+import type { PostWithLikeState } from "@/lib/posts/types";
 import { formatRelativeDate, truncateContent, getInitial } from "@/lib/posts/utils";
+import LikeButton from "./LikeButton";
 
 const GRADIENTS = ["img-grad-1", "img-grad-2", "img-grad-3", "img-grad-4", "img-grad-5"];
 function pickGradient(id: string): string {
@@ -12,10 +13,17 @@ function pickGradient(id: string): string {
   return GRADIENTS[hash];
 }
 
-export default function PostCard({ post }: { post: PostWithAuthor }) {
+type Props = {
+  post: PostWithLikeState;
+  /** ID zalogowanego usera lub null jeśli niezalogowany. Z tego wyliczamy isOwnPost. */
+  currentUserId: string | null;
+};
+
+export default function PostCard({ post, currentUserId }: Props) {
   const authorName =
     post.author?.nickname ?? post.author?.email?.split("@")[0] ?? "anonim";
   const initial = getInitial(post.author?.nickname ?? post.author?.email);
+  const isOwnPost = !!currentUserId && currentUserId === post.author_id;
 
   return (
     <article className="post-card">
@@ -53,6 +61,17 @@ export default function PostCard({ post }: { post: PostWithAuthor }) {
           </span>
         </div>
       </Link>
+
+      <footer className="post-card-footer">
+        <LikeButton
+          postId={post.id}
+          initialLiked={post.liked_by_me}
+          initialCount={post.likes_count}
+          isLoggedIn={currentUserId !== null}
+          isOwnPost={isOwnPost}
+          variant="compact"
+        />
+      </footer>
     </article>
   );
 }

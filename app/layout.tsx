@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
+import { Toaster } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
 import "./globals.css";
@@ -16,8 +17,6 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-// Metadane strony — pojawiają się w karcie przeglądarki, w wynikach Google,
-// w podglądach na Facebooku/X. Edycja tutaj = zmiana w całej aplikacji.
 export const metadata: Metadata = {
   title: {
     default: "Tollerkowo",
@@ -39,6 +38,19 @@ export default function RootLayout({
         <Navbar />
         <main>{children}</main>
         <Footer />
+        {/* Toaster od sonnera — system powiadomień typu "toast" w dolnym rogu.
+            Wyświetla się dla każdego toast.* z dowolnego komponentu. */}
+        <Toaster
+          theme="dark"
+          position="bottom-right"
+          richColors
+          closeButton
+          toastOptions={{
+            classNames: {
+              toast: "app-toast",
+            },
+          }}
+        />
       </body>
     </html>
   );

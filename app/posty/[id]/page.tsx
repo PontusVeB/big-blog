@@ -7,6 +7,7 @@ import type { PostWithAuthor } from "@/lib/posts/types";
 import type { Role } from "@/lib/auth/permissions";
 import RichContent from "@/components/post/RichContent";
 import PostActions from "@/components/post/PostActions";
+import PostLikesSection from "@/components/post/PostLikesSection";
 
 export async function generateMetadata({
   params,
@@ -20,9 +21,9 @@ export async function generateMetadata({
     .select("title, content")
     .eq("id", id)
     .single();
-  if (!post) return { title: "Post nie znaleziony • Big Blog" };
+  if (!post) return { title: "Post nie znaleziony" };
   return {
-    title: `${post.title} • Big Blog`,
+    title: post.title,
     description: post.content.slice(0, 160),
   };
 }
@@ -35,16 +36,12 @@ export default async function PostPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  // Pobierz post + dane bieżącego usera (do sprawdzenia uprawnień edytuj/usuń)
-  const [
-    { data: post, error },
-    { data: { user } },
-  ] = await Promise.all([
+  const [{ data: post, error }, { data: { user } }] = await Promise.all([
     supabase
       .from("posts")
       .select(
         `
-        id, title, content, image_url, author_id, created_at, edited_at,
+        id, title, content, image_url, author_id, created_at, edited_at, likes_count,
         author:profiles!author_id (id, nickname, email, avatar_url)
       `
       )
@@ -55,19 +52,30 @@ export default async function PostPage({
 
   if (error || !post) notFound();
 
-  // Profil zalogowanego do permissions check
   let viewerProfile: { id: string; role: Role; permissions: string[] | null } | null = null;
+  let likedByMe = false;
+
   if (user) {
-    const { data } = await supabase
-      .from("profiles")
-      .select("id, role, permissions")
-      .eq("id", user.id)
-      .single();
-    viewerProfile = data as typeof viewerProfile;
+    const [{ data: profileData }, { data: myLike }] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, role, permissions")
+        .eq("id", user.id)
+        .single(),
+      supabase
+        .from("post_likes")
+        .select("post_id")
+        .eq("post_id", id)
+        .eq("user_id", user.id)
+        .maybeSingle(),
+    ]);
+    viewerProfile = profileData as typeof viewerProfile;
+    likedByMe = !!myLike;
   }
 
   const canEdit = canEditPost(viewerProfile, post);
   const canDelete = canDeletePost(viewerProfile, post);
+  const isOwnPost = !!user && user.id === post.author_id;
 
   const authorName =
     post.author?.nickname ?? post.author?.email?.split("@")[0] ?? "anonim";
@@ -108,12 +116,19 @@ export default async function PostPage({
         </div>
       </div>
 
-      {/* Akcje (edycja/usuwanie) — widoczne tylko jeśli user ma uprawnienia */}
       <PostActions postId={post.id} canEdit={canEdit} canDelete={canDelete} />
 
       <div className="post-content">
         <RichContent content={post.content} />
       </div>
+
+      <PostLikesSection
+        postId={post.id}
+        initialLiked={likedByMe}
+        initialCount={post.likes_count}
+        isLoggedIn={!!user}
+        isOwnPost={isOwnPost}
+      />
     </article>
   );
 }

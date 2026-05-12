@@ -1,8 +1,9 @@
 "use client";
-// Przycisk "Usuń post" — wymaga potwierdzenia, wywołuje server action.
+// Przycisk usuwania posta — confirm + toast zamiast alert.
 
 import { useTransition } from "react";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import { deletePost } from "@/lib/posts/actions";
 
 export default function DeleteButton({ postId }: { postId: string }) {
@@ -14,7 +15,12 @@ export default function DeleteButton({ postId }: { postId: string }) {
     }
     startTransition(async () => {
       const result = await deletePost(postId);
-      if (result?.error) alert(result.error);
+      if (result?.error) {
+        toast.error("Nie udało się usunąć posta", {
+          description: result.error,
+        });
+      }
+      // Po sukcesie deletePost wykonuje redirect — nie wracamy tutaj
     });
   }
 

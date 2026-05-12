@@ -1,5 +1,5 @@
 "use server";
-// Server Actions dla postów: tworzenie, edycja, usuwanie.
+// Server Actions dla postów: tworzenie, edycja, usuwanie, lajkowanie.
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -10,7 +10,6 @@ import { hasPermission, type Role } from "@/lib/auth/permissions";
 
 export type PostFormState = { error?: string } | null;
 
-// ─── Walidacja podstawowa pól formularza ─────────────────────
 function validatePostFields(title: string, content: string): string | null {
   if (!title || !content) return "Tytuł i treść są wymagane.";
   if (title.length > 200) return "Tytuł może mieć maksymalnie 200 znaków.";
@@ -52,7 +51,7 @@ export async function createPost(
 }
 
 // ════════════════════════════════════════════════════════════════
-//  UPDATE — tylko autor, tylko w oknie 30 min
+//  UPDATE
 // ════════════════════════════════════════════════════════════════
 export async function updatePost(
   _prev: PostFormState,
@@ -72,7 +71,6 @@ export async function updatePost(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Musisz być zalogowany." };
 
-  // Sprawdzamy istnienie + autorstwo + czas
   const { data: existing, error: fetchErr } = await supabase
     .from("posts")
     .select("id, author_id, created_at, image_url")
@@ -88,8 +86,6 @@ export async function updatePost(
     return { error: "Czas na edycję upłynął (30 minut od publikacji)." };
   }
 
-  // Update — RLS i tak by sprawdziło autorstwo, ale walidujemy w kodzie dla
-  // czytelnego komunikatu błędu i sprawdzenia okna czasowego.
   const { error: updateErr } = await supabase
     .from("posts")
     .update({
@@ -102,7 +98,6 @@ export async function updatePost(
 
   if (updateErr) return { error: updateErr.message };
 
-  // Jeśli zmieniliśmy zdjęcie, usuwamy stare z Storage (opcjonalne sprzątanie)
   if (existing.image_url && existing.image_url !== imageUrl) {
     const path = extractStoragePath(existing.image_url, "post-images");
     if (path) {
@@ -117,7 +112,7 @@ export async function updatePost(
 }
 
 // ════════════════════════════════════════════════════════════════
-//  DELETE — autor zawsze, admin/master moderacyjnie
+//  DELETE
 // ════════════════════════════════════════════════════════════════
 export async function deletePost(
   postId: string
@@ -126,7 +121,6 @@ export async function deletePost(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Musisz być zalogowany." };
 
-  // Pobieramy post + profil zalogowanego usera (rola, permissions)
   const [{ data: post }, { data: profile }] = await Promise.all([
     supabase
       .from("posts")
@@ -149,21 +143,74 @@ export async function deletePost(
     return { error: "Nie masz uprawnień do usunięcia tego posta." };
   }
 
-  // Używamy admin clienta (bypass RLS) — bezpiecznie, bo właśnie sprawdziliśmy
-  // uprawnienia w kodzie. RLS by zablokowała admin/master (polityka pozwala
-  // tylko autorowi), więc nie da się tego zrobić przez zwykły client.
   const admin = createAdminClient();
-
-  // Usuń zdjęcie z Storage jeśli istniało
   if (post.image_url) {
     const path = extractStoragePath(post.image_url, "post-images");
     if (path) await admin.storage.from("post-images").remove([path]);
   }
 
-  // Usuń wpis posta
   const { error } = await admin.from("posts").delete().eq("id", postId);
   if (error) return { error: error.message };
 
   revalidatePath("/");
   redirect("/");
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TOGGLE LIKE — z blokadą self-like
+// ════════════════════════════════════════════════════════════════
+export async function togglePostLike(
+  postId: string
+): Promise<{ liked: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { liked: false, error: "Musisz być zalogowany aby lajkować." };
+  }
+
+  // Pobieramy autora posta żeby sprawdzić czy nie próbuje lajkować samego siebie
+  const { data: post } = await supabase
+    .from("posts")
+    .select("author_id")
+    .eq("id", postId)
+    .single<{ author_id: string }>();
+
+  if (!post) {
+    return { liked: false, error: "Post nie istnieje." };
+  }
+  if (post.author_id === user.id) {
+    return { liked: false, error: "Nie możesz polubić swojego posta." };
+  }
+
+  // Sprawdzamy czy user już lajkował
+  const { data: existing } = await supabase
+    .from("post_likes")
+    .select("post_id")
+    .eq("post_id", postId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    // UNLIKE — usuwamy wiersz. Trigger SQL dekrementuje likes_count.
+    const { error } = await supabase
+      .from("post_likes")
+      .delete()
+      .eq("post_id", postId)
+      .eq("user_id", user.id);
+    if (error) return { liked: true, error: error.message };
+    revalidatePath("/");
+    revalidatePath(`/posty/${postId}`);
+    return { liked: false };
+  }
+
+  // LIKE — wstawiamy. Trigger SQL inkrementuje. RLS w bazie też pilnuje
+  // że user nie lajkuje swojego posta — dodatkowa warstwa bezpieczeństwa.
+  const { error } = await supabase
+    .from("post_likes")
+    .insert({ post_id: postId, user_id: user.id });
+
+  if (error) return { liked: false, error: error.message };
+  revalidatePath("/");
+  revalidatePath(`/posty/${postId}`);
+  return { liked: true };
 }

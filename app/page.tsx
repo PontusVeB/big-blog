@@ -1,12 +1,10 @@
-// Strona główna — Toller-themed.
-// Faza 4 zastąpi placeholder kart prawdziwą integracją z postami z bazy
-// (już mamy w aplikacji, tu hero + sekcje wprowadzające).
+// Strona główna — lista postów z lajkami i blokadą self-like.
 
 import Link from "next/link";
 import { PawPrint, MessageCircle, ImagePlus, Users } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/post/PostCard";
-import type { PostWithAuthor } from "@/lib/posts/types";
+import type { PostWithAuthor, PostWithLikeState } from "@/lib/posts/types";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -18,7 +16,7 @@ export default async function HomePage() {
     .from("posts")
     .select(
       `
-      id, title, content, image_url, author_id, created_at, edited_at,
+      id, title, content, image_url, author_id, created_at, edited_at, likes_count,
       author:profiles!author_id (id, nickname, email, avatar_url)
     `
     )
@@ -26,7 +24,24 @@ export default async function HomePage() {
     .limit(20)
     .returns<PostWithAuthor[]>();
 
-  const hasPosts = posts && posts.length > 0;
+  let likedIds = new Set<string>();
+  if (user && posts && posts.length > 0) {
+    const postIds = posts.map((p) => p.id);
+    const { data: myLikes } = await supabase
+      .from("post_likes")
+      .select("post_id")
+      .eq("user_id", user.id)
+      .in("post_id", postIds);
+    likedIds = new Set(myLikes?.map((l) => l.post_id as string) ?? []);
+  }
+
+  const postsWithLikeState: PostWithLikeState[] = (posts ?? []).map((p) => ({
+    ...p,
+    liked_by_me: likedIds.has(p.id),
+  }));
+
+  const hasPosts = postsWithLikeState.length > 0;
+  const currentUserId = user?.id ?? null;
 
   return (
     <>
@@ -36,9 +51,9 @@ export default async function HomePage() {
         </span>
         <h1>Tollerkowo</h1>
         <p>
-          Miejsce, gdzie opiekunowie Tollerów dzielą się historiami,
-          zdjęciami i radami. Sport, zdrowie, hodowla, codzienne życie z rasą —
-          wszystko od ludzi, którzy żyją tym samym co Ty.
+          Miejsce, gdzie opiekunowie Tollerów dzielą się historiami, zdjęciami i
+          radami. Sport, zdrowie, hodowla, codzienne życie z rasą — wszystko od
+          ludzi, którzy żyją tym samym co Ty.
         </p>
       </section>
 
@@ -54,8 +69,8 @@ export default async function HomePage() {
 
         {hasPosts ? (
           <div className="posts-grid">
-            {posts.map((post) => (
-              <PostCard key={post.id} post={post} />
+            {postsWithLikeState.map((post) => (
+              <PostCard key={post.id} post={post} currentUserId={currentUserId} />
             ))}
           </div>
         ) : (
@@ -76,7 +91,6 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* Sekcja "co znajdziesz" — pokazuje rodzaje treści, niezależnie od liczby postów */}
       <section className="features">
         <div className="features-grid">
           <div className="feature-card">

@@ -17,9 +17,6 @@ model Profile {
   id String @id @db.Uuid
 
   email       String    @unique
-  // nickname unikalna w całym serwisie. Wartości NULL są dopuszczone wielokrotnie
-  // (Postgres traktuje NULL-e jako różne w UNIQUE), więc świeży user bez ksywki
-  // nie blokuje innych — limit dotyczy tylko ustawionych ksywek.
   nickname    String?   @unique
   bio         String?
   avatarUrl   String?   @map("avatar_url")
@@ -29,7 +26,9 @@ model Profile {
   createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
 
-  posts Post[]
+  // Relacje
+  posts     Post[]
+  postLikes PostLike[]
 
   @@map("profiles")
 }
@@ -44,17 +43,41 @@ enum Role {
 //  Post
 // ════════════════════════════════════════════════════════════════
 model Post {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title     String    @db.VarChar(200)
-  content   String    @db.Text
-  imageUrl  String?   @map("image_url")
-  authorId  String    @db.Uuid @map("author_id")
-  author    Profile   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
-  updatedAt DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
-  editedAt  DateTime? @db.Timestamptz(3) @map("edited_at")
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title      String    @db.VarChar(200)
+  content    String    @db.Text
+  imageUrl   String?   @map("image_url")
+  authorId   String    @db.Uuid @map("author_id")
+  author     Profile   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  // Denormalizowany licznik lajków — utrzymywany przez trigger SQL
+  // (zobacz migrację ręczną w SQL Editor). Zapobiega kosztownym COUNT-om
+  // przy każdym wyświetleniu listy postów.
+  likesCount Int       @default(0) @map("likes_count")
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
+  editedAt   DateTime? @db.Timestamptz(3) @map("edited_at")
+
+  likes PostLike[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId])
   @@map("posts")
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PostLike — junction many-to-many (post ↔ user)
+// ════════════════════════════════════════════════════════════════
+// Klucz złożony (postId, userId) wymusza unikalność: jeden lajk per user
+// na post. Indeks na userId — szybkie zapytanie "co user polajkował".
+// onDelete: Cascade — gdy znika post lub user, ich lajki znikają z nimi.
+model PostLike {
+  postId    String   @db.Uuid @map("post_id")
+  userId    String   @db.Uuid @map("user_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+
+  @@id([postId, userId])
+  @@index([userId])
+  @@map("post_likes")
 }
