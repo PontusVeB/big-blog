@@ -1,5 +1,7 @@
 "use server";
 // Server Actions dla postów: tworzenie, edycja, usuwanie, lajkowanie.
+// Po sukcesie przekierowujemy z parametrem ?flash=X żeby globalny ToastFlash
+// pokazał potwierdzenie na stronie docelowej.
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -47,7 +49,7 @@ export async function createPost(
   }
 
   revalidatePath("/");
-  redirect(`/posty/${post.id}`);
+  redirect(`/posty/${post.id}?flash=post_created`);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -108,7 +110,7 @@ export async function updatePost(
 
   revalidatePath("/");
   revalidatePath(`/posty/${id}`);
-  redirect(`/posty/${id}`);
+  redirect(`/posty/${id}?flash=post_updated`);
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -153,11 +155,11 @@ export async function deletePost(
   if (error) return { error: error.message };
 
   revalidatePath("/");
-  redirect("/");
+  redirect("/?flash=post_deleted");
 }
 
 // ════════════════════════════════════════════════════════════════
-//  TOGGLE LIKE — z blokadą self-like
+//  TOGGLE LIKE — z blokadą self-like (bez flash, bo używamy optimistic UI)
 // ════════════════════════════════════════════════════════════════
 export async function togglePostLike(
   postId: string
@@ -168,7 +170,6 @@ export async function togglePostLike(
     return { liked: false, error: "Musisz być zalogowany aby lajkować." };
   }
 
-  // Pobieramy autora posta żeby sprawdzić czy nie próbuje lajkować samego siebie
   const { data: post } = await supabase
     .from("posts")
     .select("author_id")
@@ -182,7 +183,6 @@ export async function togglePostLike(
     return { liked: false, error: "Nie możesz polubić swojego posta." };
   }
 
-  // Sprawdzamy czy user już lajkował
   const { data: existing } = await supabase
     .from("post_likes")
     .select("post_id")
@@ -191,7 +191,6 @@ export async function togglePostLike(
     .maybeSingle();
 
   if (existing) {
-    // UNLIKE — usuwamy wiersz. Trigger SQL dekrementuje likes_count.
     const { error } = await supabase
       .from("post_likes")
       .delete()
@@ -203,8 +202,6 @@ export async function togglePostLike(
     return { liked: false };
   }
 
-  // LIKE — wstawiamy. Trigger SQL inkrementuje. RLS w bazie też pilnuje
-  // że user nie lajkuje swojego posta — dodatkowa warstwa bezpieczeństwa.
   const { error } = await supabase
     .from("post_likes")
     .insert({ post_id: postId, user_id: user.id });

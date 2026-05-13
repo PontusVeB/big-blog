@@ -1,10 +1,13 @@
 "use client";
+// Formularz edycji profilu. Banner success usunięty — po zapisie
+// updateProfile redirectuje z ?flash=profile_saved i wyskakuje toast.
+// Inline pokazujemy tylko błędy.
 
 import { useState, useRef } from "react";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import dynamic from "next/dynamic";
-import { Smile, CheckCircle2 } from "lucide-react";
+import { Smile } from "lucide-react";
 import type { EmojiClickData } from "emoji-picker-react";
 import { updateProfile, type ProfileFormState } from "@/lib/profiles/actions";
 import AvatarUpload from "./AvatarUpload";
@@ -148,11 +151,6 @@ export default function ProfileEditForm({ initial }: Props) {
       </div>
 
       {state?.error && <div className="auth-error">{state.error}</div>}
-      {state?.success && (
-        <div className="auth-success">
-          <CheckCircle2 size={16} /> Zmiany zapisane!
-        </div>
-      )}
 
       <div className="post-form-actions">
         <SubmitButton />

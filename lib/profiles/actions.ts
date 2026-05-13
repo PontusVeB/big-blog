@@ -1,6 +1,7 @@
 "use server";
-// Server Actions dla profilu.
+// Server Actions dla profilu — po sukcesie redirect z ?flash=profile_saved.
 
+import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient, extractStoragePath } from "@/lib/supabase/admin";
@@ -8,7 +9,6 @@ import { validateNickname } from "./utils";
 
 export type ProfileFormState = {
   error?: string;
-  success?: boolean;
 } | null;
 
 export async function updateProfile(
@@ -20,7 +20,6 @@ export async function updateProfile(
   const avatarUrlRaw = (formData.get("avatarUrl") as string)?.trim();
   const avatarUrl = avatarUrlRaw && avatarUrlRaw.length > 0 ? avatarUrlRaw : null;
 
-  // Walidacja ksywki
   const nickError = validateNickname(nickname);
   if (nickError) return { error: nickError };
 
@@ -32,8 +31,6 @@ export async function updateProfile(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Musisz być zalogowany." };
 
-  // Pobieramy aktualny profil — potrzebne do sprzątania starego avatara
-  // gdy user zmienia zdjęcie.
   const { data: existing } = await supabase
     .from("profiles")
     .select("nickname, avatar_url")
@@ -50,7 +47,6 @@ export async function updateProfile(
     .eq("id", user.id);
 
   if (updateErr) {
-    // 23505 = unique_violation w Postgresie. Sprawdzamy czy chodzi o ksywkę.
     if (
       updateErr.code === "23505" ||
       updateErr.message?.toLowerCase().includes("nickname") ||
@@ -70,9 +66,6 @@ export async function updateProfile(
     }
   }
 
-  // Revalidate layout (Navbar pokazuje avatar/ksywkę) i samą stronę edycji
   revalidatePath("/", "layout");
-  revalidatePath("/profil/edycja");
-
-  return { success: true };
+  redirect("/profil/edycja?flash=profile_saved");
 }

@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import { Inter, Playfair_Display } from "next/font/google";
 import { Toaster } from "sonner";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import ToastFlash from "@/components/shared/ToastFlash";
 import "./globals.css";
 
 const inter = Inter({
@@ -38,19 +40,21 @@ export default function RootLayout({
         <Navbar />
         <main>{children}</main>
         <Footer />
-        {/* Toaster od sonnera — system powiadomień typu "toast" w dolnym rogu.
-            Wyświetla się dla każdego toast.* z dowolnego komponentu. */}
+
+        {/* Toaster — kontener wyświetlający wszystkie toasty (lewy dolny róg) */}
         <Toaster
           theme="dark"
           position="bottom-right"
           richColors
           closeButton
-          toastOptions={{
-            classNames: {
-              toast: "app-toast",
-            },
-          }}
+          toastOptions={{ classNames: { toast: "app-toast" } }}
         />
+
+        {/* Flash toasty z URL params (po przekierowaniach z Server Actions).
+            Suspense wymagane bo useSearchParams() jest CSR-only w Next.js 15+. */}
+        <Suspense fallback={null}>
+          <ToastFlash />
+        </Suspense>
       </body>
     </html>
   );
