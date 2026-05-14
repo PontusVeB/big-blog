@@ -26,9 +26,9 @@ model Profile {
   createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
 
-  // Relacje
   posts     Post[]
   postLikes PostLike[]
+  comments  Comment[]
 
   @@map("profiles")
 }
@@ -49,9 +49,6 @@ model Post {
   imageUrl   String?   @map("image_url")
   authorId   String    @db.Uuid @map("author_id")
   author     Profile   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  // Denormalizowany licznik lajków — utrzymywany przez trigger SQL
-  // (zobacz migrację ręczną w SQL Editor). Zapobiega kosztownym COUNT-om
-  // przy każdym wyświetleniu listy postów.
   likesCount Int       @default(0) @map("likes_count")
   createdAt  DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
@@ -65,11 +62,8 @@ model Post {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  PostLike — junction many-to-many (post ↔ user)
+//  PostLike
 // ════════════════════════════════════════════════════════════════
-// Klucz złożony (postId, userId) wymusza unikalność: jeden lajk per user
-// na post. Indeks na userId — szybkie zapytanie "co user polajkował".
-// onDelete: Cascade — gdy znika post lub user, ich lajki znikają z nimi.
 model PostLike {
   postId    String   @db.Uuid @map("post_id")
   userId    String   @db.Uuid @map("user_id")
@@ -80,4 +74,42 @@ model PostLike {
   @@id([postId, userId])
   @@index([userId])
   @@map("post_likes")
+}
+
+// ════════════════════════════════════════════════════════════════
+//  Comment — polimorficzny, generyczny dla wielu typów obiektów
+// ════════════════════════════════════════════════════════════════
+// Klucz architektoniczny: target_type + target_id pozwala dorzucić
+// komentarze pod EVENT, RECIPE itd. bez tworzenia nowej tabeli.
+// Dziś tylko POST — kolejne typy to dwie linie zmian (enum + UI router).
+//
+// Zagnieżdżanie: parent_id (referencja do innego komentarza) + depth
+// (głębokość 0-5). Brak Materialized Path — dla naszej skali budowanie
+// drzewa w pamięci aplikacji wystarczy.
+//
+// Soft-delete: is_deleted=true zachowuje strukturę wątku gdy admin moderuje.
+model Comment {
+  id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  targetType  CommentTargetType @map("target_type")
+  targetId    String            @db.Uuid @map("target_id")
+  authorId    String            @db.Uuid @map("author_id")
+  author      Profile           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  content     String            @db.Text
+  parentId    String?           @db.Uuid @map("parent_id")
+  parent      Comment?          @relation("CommentTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    Comment[]         @relation("CommentTree")
+  depth       Int               @default(0)
+  isDeleted   Boolean           @default(false) @map("is_deleted")
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3) @map("created_at")
+  editedAt    DateTime?         @db.Timestamptz(3) @map("edited_at")
+
+  @@index([targetType, targetId])
+  @@index([parentId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+enum CommentTargetType {
+  POST
+  // Przyszłe typy: EVENT, RECIPE, BREEDER, itp.
 }

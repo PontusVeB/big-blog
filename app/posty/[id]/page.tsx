@@ -4,10 +4,12 @@ import { createClient } from "@/lib/supabase/server";
 import { formatRelativeDate, getInitial } from "@/lib/posts/utils";
 import { canEditPost, canDeletePost } from "@/lib/posts/permissions";
 import type { PostWithAuthor } from "@/lib/posts/types";
+import type { CommentRow } from "@/lib/comments/types";
 import type { Role } from "@/lib/auth/permissions";
 import RichContent from "@/components/post/RichContent";
 import PostActions from "@/components/post/PostActions";
 import PostLikesSection from "@/components/post/PostLikesSection";
+import CommentTree from "@/components/comment/CommentTree";
 
 export async function generateMetadata({
   params,
@@ -73,6 +75,22 @@ export default async function PostPage({
     likedByMe = !!myLike;
   }
 
+  // Pobieramy komentarze osobnym zapytaniem (płaska lista, ułożymy w drzewo
+  // już po stronie klienta/serwera w CommentTree)
+  const { data: commentsData } = await supabase
+    .from("comments")
+    .select(
+      `
+      id, target_type, target_id, author_id, content, parent_id, depth, is_deleted, created_at, edited_at,
+      author:profiles!author_id (id, nickname, email, avatar_url)
+    `
+    )
+    .eq("target_type", "POST")
+    .eq("target_id", id)
+    .order("created_at", { ascending: true })
+    .returns<CommentRow[]>();
+  const comments = commentsData ?? [];
+
   const canEdit = canEditPost(viewerProfile, post);
   const canDelete = canDeletePost(viewerProfile, post);
   const isOwnPost = !!user && user.id === post.author_id;
@@ -128,6 +146,14 @@ export default async function PostPage({
         initialCount={post.likes_count}
         isLoggedIn={!!user}
         isOwnPost={isOwnPost}
+      />
+
+      {/* Komentarze — drzewo zagnieżdżone */}
+      <CommentTree
+        targetType="POST"
+        targetId={post.id}
+        comments={comments}
+        viewer={viewerProfile}
       />
     </article>
   );

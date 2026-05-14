@@ -1413,3 +1413,230 @@ img { max-width: 100%; display: block; }
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ════════════════════════════════════════════════
+   SEKCJA KOMENTARZY (na stronie posta)
+   ════════════════════════════════════════════════ */
+.comments-section {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+.comments-heading {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 22px;
+  color: var(--color-cream);
+  margin-bottom: 20px;
+}
+.comments-login-prompt {
+  padding: 16px;
+  text-align: center;
+  color: var(--color-text-muted);
+  background: var(--color-surface-2);
+  border-radius: var(--radius-md);
+  font-size: 14px;
+  margin-bottom: 28px;
+}
+.comments-login-prompt a {
+  color: var(--color-teal-light);
+  font-weight: 600;
+}
+
+/* ════════════════════════════════════════════════
+   COMMENT FORM (główny i odpowiedź)
+   ════════════════════════════════════════════════ */
+.comment-form {
+  background: var(--color-surface-2);
+  padding: 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-border);
+  margin-bottom: 28px;
+}
+.comment-form-reply {
+  margin: 12px 0 8px;
+  padding: 12px;
+}
+.comment-textarea {
+  width: 100%;
+  background: transparent !important;
+  border: none !important;
+  color: var(--color-text);
+  resize: vertical;
+  min-height: 70px;
+  outline: none;
+  padding: 0 !important;
+  font-size: 14px;
+}
+.comment-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+.comment-submit {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
+/* ════════════════════════════════════════════════
+   COMMENT LIST / ITEM
+   ════════════════════════════════════════════════ */
+.comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.comment {
+  padding: 14px 16px;
+  border-radius: var(--radius-sm);
+  margin-top: 8px;
+  background: transparent;
+}
+
+/* Komentarze top-level — cienka linia oddzielająca, bez tła */
+.comments-list > .comment {
+  border-top: 1px solid var(--color-border);
+  border-radius: 0;
+  padding: 16px 0;
+  margin-top: 0;
+  background: transparent;
+}
+
+/* Naprzemienne tła co poziom zagnieżdżenia (czytelność wątków) */
+.comment-children > .comment              { background: var(--color-anthracite-2); }  /* poziom 1 */
+.comment-children .comment-children > .comment              { background: var(--color-anthracite-3); }  /* poziom 2 */
+.comment-children .comment-children .comment-children > .comment              { background: var(--color-anthracite-2); }  /* poziom 3 */
+.comment-children .comment-children .comment-children .comment-children > .comment              { background: var(--color-anthracite-3); }  /* poziom 4 */
+.comment-children .comment-children .comment-children .comment-children .comment-children > .comment              { background: var(--color-anthracite-2); }  /* poziom 5 */
+
+.comment-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+.comment-content {
+  flex: 1;
+  min-width: 0; /* pozwala flex-itemowi się kurczyć */
+}
+.comment-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+.comment-head .nick {
+  font-weight: 600;
+  color: var(--color-cream);
+  font-size: 14px;
+}
+.comment-head .time {
+  font-size: 12px;
+  color: var(--color-text-dim);
+}
+.comment-head .badge-edited {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+.comment-body {
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.6;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.comment.comment-deleted .comment-body {
+  color: var(--color-text-dim);
+  font-style: italic;
+}
+.comment.comment-deleted .nick {
+  color: var(--color-text-dim);
+}
+
+.comment-avatar-placeholder {
+  background: var(--color-anthracite-3);
+  color: var(--color-text-muted);
+}
+
+/* ════════════════════════════════════════════════
+   COMMENT ACTIONS (Odpowiedz / Edytuj / Usuń)
+   ════════════════════════════════════════════════ */
+.comment-actions {
+  display: flex;
+  gap: 14px;
+  font-size: 12px;
+}
+.comment-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--color-text-muted);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  transition: color 0.15s;
+}
+.comment-action-btn:hover {
+  color: var(--color-cream);
+}
+.comment-action-danger:hover {
+  color: var(--color-danger);
+}
+
+/* ════════════════════════════════════════════════
+   COMMENT EDIT (inline)
+   ════════════════════════════════════════════════ */
+.comment-edit {
+  margin-bottom: 8px;
+}
+.comment-edit textarea {
+  width: 100%;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.comment-edit-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+.comment-edit-actions .btn {
+  padding: 6px 14px;
+  font-size: 13px;
+}
+
+/* ════════════════════════════════════════════════
+   COMMENT CHILDREN (zagnieżdżone wątki)
+   ════════════════════════════════════════════════ */
+.comment-children {
+  margin-left: 20px;
+  padding-left: 14px;
+  border-left: 2px solid var(--color-teal-dark);
+  margin-top: 12px;
+}
+.comment-children .comment-children {
+  margin-left: 14px;
+  padding-left: 12px;
+  border-left-color: var(--color-border);
+}
+
+.comment-reply-wrapper {
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .comments-section { padding: 32px 16px 60px; }
+  .comment-children {
+    margin-left: 10px;
+    padding-left: 10px;
+  }
+  .comment-children .comment-children {
+    margin-left: 8px;
+    padding-left: 8px;
+  }
+}
