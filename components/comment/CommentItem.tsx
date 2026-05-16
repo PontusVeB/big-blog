@@ -1,7 +1,10 @@
 "use client";
-// Pojedynczy komentarz — z lajkiem (nowy w 5c), reply, edycją, usuwaniem.
+// Pojedynczy komentarz — z lajkiem, reply, edycją, usuwaniem.
+// Avatar i nick autora są klikalnymi linkami do /profil/[author_id]
+// (poza komentarzami soft-deleted — tam autor jest zanonimizowany).
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { CornerDownRight, Pencil, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 import { updateComment, deleteComment } from "@/lib/comments/actions";
@@ -68,24 +71,40 @@ export default function CommentItem({
     });
   }
 
+  // Element awatara — wybieramy między imgiem a fallbackiem z literką
+  const avatarEl =
+    !comment.is_deleted && comment.author?.avatar_url ? (
+      <img
+        src={comment.author.avatar_url}
+        alt={authorName}
+        className="avatar avatar-sm"
+      />
+    ) : (
+      <span className="avatar avatar-sm comment-avatar-placeholder">{initial}</span>
+    );
+
   return (
     <div className={`comment${comment.is_deleted ? " comment-deleted" : ""}`}>
       <div className="comment-row">
-        {!comment.is_deleted && comment.author?.avatar_url ? (
-          <img
-            src={comment.author.avatar_url}
-            alt={authorName}
-            className="avatar avatar-sm"
-          />
+        {/* Avatar — link do profilu (poza deleted) */}
+        {comment.is_deleted ? (
+          avatarEl
         ) : (
-          <span className="avatar avatar-sm comment-avatar-placeholder">
-            {initial}
-          </span>
+          <Link href={`/profil/${comment.author_id}`} aria-label={authorName} className="comment-avatar-link">
+            {avatarEl}
+          </Link>
         )}
 
         <div className="comment-content">
           <div className="comment-head">
-            <span className="nick">{authorName}</span>
+            {/* Nick — też link do profilu */}
+            {comment.is_deleted ? (
+              <span className="nick">{authorName}</span>
+            ) : (
+              <Link href={`/profil/${comment.author_id}`} className="comment-author-link">
+                <span className="nick">{authorName}</span>
+              </Link>
+            )}
             <span className="time">{formatRelativeDate(comment.created_at)}</span>
             {comment.edited_at && !comment.is_deleted && (
               <span className="badge-edited">(edytowane)</span>
@@ -133,7 +152,6 @@ export default function CommentItem({
 
           {!editOpen && !comment.is_deleted && (
             <div className="comment-actions">
-              {/* Generyczny LikeButton — targetType=comment */}
               <LikeButton
                 targetType="comment"
                 targetId={comment.id}

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeDate, getInitial } from "@/lib/posts/utils";
 import { canEditPost, canDeletePost } from "@/lib/posts/permissions";
@@ -76,7 +77,6 @@ export default async function PostPage({
     likedByMe = !!myLike;
   }
 
-  // Pobieramy komentarze
   const { data: commentsData } = await supabase
     .from("comments")
     .select(
@@ -91,7 +91,6 @@ export default async function PostPage({
     .returns<CommentRow[]>();
   const comments = commentsData ?? [];
 
-  // Pobieramy ID komentarzy które user polubił (jedno zapytanie, dla wszystkich od razu)
   let likedCommentIds = new Set<string>();
   if (user && comments.length > 0) {
     const commentIds = comments.map((c) => c.id);
@@ -124,7 +123,11 @@ export default async function PostPage({
         <div className="hero-overlay">
           <h1>{post.title}</h1>
           <div className="meta">
-            <span className="author">
+            {/* Autor — link do profilu */}
+            <Link
+              href={`/profil/${post.author_id}`}
+              className="author author-link-hero"
+            >
               {post.author?.avatar_url ? (
                 <img
                   src={post.author.avatar_url}
@@ -135,7 +138,7 @@ export default async function PostPage({
                 <span className="avatar avatar-sm">{initial}</span>
               )}
               {authorName}
-            </span>
+            </Link>
             <span className="dot"></span>
             <span>{formatRelativeDate(post.created_at)}</span>
             {post.edited_at && (
