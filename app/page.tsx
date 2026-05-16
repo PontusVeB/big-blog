@@ -1,4 +1,4 @@
-// Strona główna — lista postów z lajkami i blokadą self-like.
+// Strona główna — lista postów z lajkami i licznikiem komentarzy.
 
 import Link from "next/link";
 import { PawPrint, MessageCircle, ImagePlus, Users } from "lucide-react";
@@ -16,7 +16,8 @@ export default async function HomePage() {
     .from("posts")
     .select(
       `
-      id, title, content, image_url, author_id, created_at, edited_at, likes_count,
+      id, title, content, image_url, author_id, created_at, edited_at,
+      likes_count, comments_count,
       author:profiles!author_id (id, nickname, email, avatar_url)
     `
     )

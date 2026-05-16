@@ -1640,3 +1640,31 @@ img { max-width: 100%; display: block; }
     padding-left: 8px;
   }
 }
+
+/* Statystyka komentarzy na karcie — klikalna, prowadzi do #comments na post page */
+.comments-stat {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.comments-stat:hover {
+  color: var(--color-teal-light);
+  background: rgba(6, 148, 148, 0.08);
+}
+.comments-stat .comments-stat-count {
+  font-variant-numeric: tabular-nums;
+}
+.comments-stat svg { flex-shrink: 0; }
+
+/* Drobne dostrojenie footer — żeby like + komentarze miały oddech */
+.post-card-footer {
+  gap: 8px;
+}

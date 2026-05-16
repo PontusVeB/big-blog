@@ -43,16 +43,20 @@ enum Role {
 //  Post
 // ════════════════════════════════════════════════════════════════
 model Post {
-  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title      String    @db.VarChar(200)
-  content    String    @db.Text
-  imageUrl   String?   @map("image_url")
-  authorId   String    @db.Uuid @map("author_id")
-  author     Profile   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  likesCount Int       @default(0) @map("likes_count")
-  createdAt  DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
-  updatedAt  DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
-  editedAt   DateTime? @db.Timestamptz(3) @map("edited_at")
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title         String    @db.VarChar(200)
+  content       String    @db.Text
+  imageUrl      String?   @map("image_url")
+  authorId      String    @db.Uuid @map("author_id")
+  author        Profile   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  // Liczniki denormalizowane — aktualizowane przez triggery SQL.
+  // Likes: update_post_likes_count() na post_likes.
+  // Comments: update_comments_count() na comments (gdy target_type='POST').
+  likesCount    Int       @default(0) @map("likes_count")
+  commentsCount Int       @default(0) @map("comments_count")
+  createdAt     DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
+  updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
+  editedAt      DateTime? @db.Timestamptz(3) @map("edited_at")
 
   likes PostLike[]
 
@@ -77,17 +81,8 @@ model PostLike {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  Comment — polimorficzny, generyczny dla wielu typów obiektów
+//  Comment — polimorficzny
 // ════════════════════════════════════════════════════════════════
-// Klucz architektoniczny: target_type + target_id pozwala dorzucić
-// komentarze pod EVENT, RECIPE itd. bez tworzenia nowej tabeli.
-// Dziś tylko POST — kolejne typy to dwie linie zmian (enum + UI router).
-//
-// Zagnieżdżanie: parent_id (referencja do innego komentarza) + depth
-// (głębokość 0-5). Brak Materialized Path — dla naszej skali budowanie
-// drzewa w pamięci aplikacji wystarczy.
-//
-// Soft-delete: is_deleted=true zachowuje strukturę wątku gdy admin moderuje.
 model Comment {
   id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   targetType  CommentTargetType @map("target_type")
@@ -111,5 +106,4 @@ model Comment {
 
 enum CommentTargetType {
   POST
-  // Przyszłe typy: EVENT, RECIPE, BREEDER, itp.
 }

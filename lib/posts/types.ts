@@ -16,11 +16,11 @@ export type PostWithAuthor = {
   created_at: string;
   edited_at: string | null;
   likes_count: number;
+  comments_count: number;
   author: PostAuthor | null;
 };
 
 // Wzbogacenie postem o flagę "czy aktualnie zalogowany user polubił".
-// Używane w widoku karty i pojedynczego posta do podświetlenia serca.
 export type PostWithLikeState = PostWithAuthor & {
   liked_by_me: boolean;
 };

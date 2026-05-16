@@ -43,7 +43,8 @@ export default async function PostPage({
       .from("posts")
       .select(
         `
-        id, title, content, image_url, author_id, created_at, edited_at, likes_count,
+        id, title, content, image_url, author_id, created_at, edited_at,
+        likes_count, comments_count,
         author:profiles!author_id (id, nickname, email, avatar_url)
       `
       )
@@ -75,8 +76,6 @@ export default async function PostPage({
     likedByMe = !!myLike;
   }
 
-  // Pobieramy komentarze osobnym zapytaniem (płaska lista, ułożymy w drzewo
-  // już po stronie klienta/serwera w CommentTree)
   const { data: commentsData } = await supabase
     .from("comments")
     .select(
@@ -148,11 +147,11 @@ export default async function PostPage({
         isOwnPost={isOwnPost}
       />
 
-      {/* Komentarze — drzewo zagnieżdżone */}
       <CommentTree
         targetType="POST"
         targetId={post.id}
         comments={comments}
+        totalCount={post.comments_count}
         viewer={viewerProfile}
       />
     </article>

@@ -1,7 +1,7 @@
-// Karta posta. Footer poza Link żeby lajk działał niezależnie od nawigacji.
+// Karta posta na liście — z licznikami lajków i komentarzy w stopce.
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageCircle } from "lucide-react";
 import type { PostWithLikeState } from "@/lib/posts/types";
 import { formatRelativeDate, truncateContent, getInitial } from "@/lib/posts/utils";
 import LikeButton from "./LikeButton";
@@ -15,7 +15,6 @@ function pickGradient(id: string): string {
 
 type Props = {
   post: PostWithLikeState;
-  /** ID zalogowanego usera lub null jeśli niezalogowany. Z tego wyliczamy isOwnPost. */
   currentUserId: string | null;
 };
 
@@ -62,6 +61,9 @@ export default function PostCard({ post, currentUserId }: Props) {
         </div>
       </Link>
 
+      {/* Footer z lajkami + licznikiem komentarzy. Lajk poza Link żeby klik
+          w serce nie nawigował. Comment count to Link z anchorem #comments —
+          jednym klikiem przeskakujesz prosto do sekcji dyskusji. */}
       <footer className="post-card-footer">
         <LikeButton
           postId={post.id}
@@ -71,6 +73,14 @@ export default function PostCard({ post, currentUserId }: Props) {
           isOwnPost={isOwnPost}
           variant="compact"
         />
+        <Link
+          href={`/posty/${post.id}#comments`}
+          className="comments-stat"
+          title="Przejdź do komentarzy"
+        >
+          <MessageCircle size={16} />
+          <span className="comments-stat-count">{post.comments_count}</span>
+        </Link>
       </footer>
     </article>
   );
