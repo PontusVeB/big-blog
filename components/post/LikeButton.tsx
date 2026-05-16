@@ -1,29 +1,39 @@
 "use client";
-// Przycisk serca z optimistic update, blokadą self-like, toastami.
+// Generyczny przycisk lajka — działa pod posty i komentarze.
+// Wybiera odpowiednią Server Action po `targetType`.
+//
+// Sygnatury togglePostLike i toggleCommentLike są identyczne:
+// (id: string) => Promise<{ liked: boolean; error?: string }>
+// dzięki czemu w środku jest prosty switch.
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { togglePostLike } from "@/lib/posts/actions";
+import { toggleCommentLike } from "@/lib/comments/actions";
+
+export type LikeTargetType = "post" | "comment";
 
 type Props = {
-  postId: string;
+  targetType: LikeTargetType;
+  targetId: string;
   initialLiked: boolean;
   initialCount: number;
   isLoggedIn: boolean;
-  /** Czy aktualny user jest autorem posta (wtedy nie może lajkować) */
-  isOwnPost: boolean;
+  /** Czy aktualny user jest autorem treści (post/komentarz) — wtedy nie może lajkować */
+  isOwnContent: boolean;
   variant?: "compact" | "full";
   onCountChange?: (newCount: number) => void;
 };
 
 export default function LikeButton({
-  postId,
+  targetType,
+  targetId,
   initialLiked,
   initialCount,
   isLoggedIn,
-  isOwnPost,
+  isOwnContent,
   variant = "compact",
   onCountChange,
 }: Props) {
@@ -36,27 +46,32 @@ export default function LikeButton({
     e.preventDefault();
     e.stopPropagation();
 
-    // Niezalogowany — toast z akcją zalogowania
     if (!isLoggedIn) {
+      const returnPath =
+        typeof window !== "undefined" ? window.location.pathname : "/";
       toast("Zaloguj się, aby polubić", {
         description: "Lajki są dla zalogowanych użytkowników.",
         action: {
           label: "Zaloguj",
-          onClick: () => router.push(`/logowanie?next=/posty/${postId}`),
+          onClick: () =>
+            router.push(`/logowanie?next=${encodeURIComponent(returnPath)}`),
         },
       });
       return;
     }
 
-    // Własny post — nie można polubić, ale tłumaczymy dlaczego
-    if (isOwnPost) {
-      toast("Nie możesz polubić swojego posta", {
+    if (isOwnContent) {
+      const msg =
+        targetType === "post"
+          ? "Nie możesz polubić swojego posta"
+          : "Nie możesz polubić własnego komentarza";
+      toast(msg, {
         description: "Możesz cieszyć się z lajków od innych 🐕",
       });
       return;
     }
 
-    // Optimistic update — od razu zmiana UI
+    // Optimistic update
     const wasLiked = liked;
     const newLiked = !wasLiked;
     const newCount = wasLiked ? count - 1 : count + 1;
@@ -65,9 +80,12 @@ export default function LikeButton({
     onCountChange?.(newCount);
 
     startTransition(async () => {
-      const result = await togglePostLike(postId);
+      const result =
+        targetType === "post"
+          ? await togglePostLike(targetId)
+          : await toggleCommentLike(targetId);
       if (result.error) {
-        // Cofamy zmianę i pokazujemy toast z błędem
+        // Cofamy
         setLiked(wasLiked);
         setCount(count);
         onCountChange?.(count);
@@ -76,11 +94,11 @@ export default function LikeButton({
     });
   }
 
-  const size = variant === "full" ? 22 : 18;
+  const size = variant === "full" ? 22 : 16;
   const className =
     `like-button` +
     (liked ? " liked" : "") +
-    (isOwnPost ? " is-own" : "") +
+    (isOwnContent ? " is-own" : "") +
     (variant === "full" ? " like-button-full" : "");
 
   return (
@@ -88,10 +106,12 @@ export default function LikeButton({
       type="button"
       onClick={handleClick}
       className={className}
-      aria-label={liked ? "Usuń polubienie" : "Polub post"}
+      aria-label={liked ? "Usuń polubienie" : "Polub"}
       title={
-        isOwnPost
-          ? "To Twój post — nie możesz go polubić"
+        isOwnContent
+          ? targetType === "post"
+            ? "To Twój post — nie możesz go polubić"
+            : "To Twój komentarz — nie możesz go polubić"
           : isLoggedIn
           ? undefined
           : "Zaloguj się aby lajkować"

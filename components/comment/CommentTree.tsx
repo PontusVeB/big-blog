@@ -1,6 +1,5 @@
-// Drzewo komentarzy — buduje hierarchię i renderuje rekurencyjnie.
-// Liczba komentarzy w nagłówku pochodzi z denormalizowanego licznika
-// (posts.comments_count) — spójna z tym co widać na karcie.
+// Drzewo komentarzy — budowa hierarchii + render.
+// Przyjmuje set ID komentarzy które aktualny user polajkował.
 
 import type { CommentRow, CommentTargetType } from "@/lib/comments/types";
 import type { Role } from "@/lib/auth/permissions";
@@ -12,8 +11,9 @@ type Props = {
   targetType: CommentTargetType;
   targetId: string;
   comments: CommentRow[];
-  /** Liczba komentarzy z denormalizowanego licznika (target.comments_count).
-      Spójna z licznikiem widocznym na karcie posta. */
+  /** Set ID komentarzy które zalogowany user polubił */
+  likedCommentIds: Set<string>;
+  /** Liczba komentarzy z denormalizowanego licznika (target.comments_count) */
   totalCount: number;
   viewer: { id: string; role: Role; permissions: string[] | null } | null;
 };
@@ -22,13 +22,13 @@ export default function CommentTree({
   targetType,
   targetId,
   comments,
+  likedCommentIds,
   totalCount,
   viewer,
 }: Props) {
-  const tree = buildCommentTree(comments);
+  const tree = buildCommentTree(comments, likedCommentIds);
 
   return (
-    // id="comments" — umożliwia jump-link `/posty/<id>#comments` z karty posta
     <section id="comments" className="comments-section">
       <h3 className="comments-heading">{commentsLabel(totalCount)}</h3>
 

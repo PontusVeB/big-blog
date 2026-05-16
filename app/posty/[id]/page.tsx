@@ -76,11 +76,12 @@ export default async function PostPage({
     likedByMe = !!myLike;
   }
 
+  // Pobieramy komentarze
   const { data: commentsData } = await supabase
     .from("comments")
     .select(
       `
-      id, target_type, target_id, author_id, content, parent_id, depth, is_deleted, created_at, edited_at,
+      id, target_type, target_id, author_id, content, parent_id, depth, is_deleted, likes_count, created_at, edited_at,
       author:profiles!author_id (id, nickname, email, avatar_url)
     `
     )
@@ -89,6 +90,20 @@ export default async function PostPage({
     .order("created_at", { ascending: true })
     .returns<CommentRow[]>();
   const comments = commentsData ?? [];
+
+  // Pobieramy ID komentarzy które user polubił (jedno zapytanie, dla wszystkich od razu)
+  let likedCommentIds = new Set<string>();
+  if (user && comments.length > 0) {
+    const commentIds = comments.map((c) => c.id);
+    const { data: myCommentLikes } = await supabase
+      .from("comment_likes")
+      .select("comment_id")
+      .eq("user_id", user.id)
+      .in("comment_id", commentIds);
+    likedCommentIds = new Set(
+      myCommentLikes?.map((l) => l.comment_id as string) ?? []
+    );
+  }
 
   const canEdit = canEditPost(viewerProfile, post);
   const canDelete = canDeletePost(viewerProfile, post);
@@ -151,6 +166,7 @@ export default async function PostPage({
         targetType="POST"
         targetId={post.id}
         comments={comments}
+        likedCommentIds={likedCommentIds}
         totalCount={post.comments_count}
         viewer={viewerProfile}
       />

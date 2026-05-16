@@ -26,9 +26,10 @@ model Profile {
   createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
 
-  posts     Post[]
-  postLikes PostLike[]
-  comments  Comment[]
+  posts        Post[]
+  postLikes    PostLike[]
+  comments     Comment[]
+  commentLikes CommentLike[]
 
   @@map("profiles")
 }
@@ -49,9 +50,6 @@ model Post {
   imageUrl      String?   @map("image_url")
   authorId      String    @db.Uuid @map("author_id")
   author        Profile   @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  // Liczniki denormalizowane — aktualizowane przez triggery SQL.
-  // Likes: update_post_likes_count() na post_likes.
-  // Comments: update_comments_count() na comments (gdy target_type='POST').
   likesCount    Int       @default(0) @map("likes_count")
   commentsCount Int       @default(0) @map("comments_count")
   createdAt     DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
@@ -95,8 +93,12 @@ model Comment {
   children    Comment[]         @relation("CommentTree")
   depth       Int               @default(0)
   isDeleted   Boolean           @default(false) @map("is_deleted")
+  // Denormalizowany licznik lajków — trigger update_comment_likes_count()
+  likesCount  Int               @default(0) @map("likes_count")
   createdAt   DateTime          @default(now()) @db.Timestamptz(3) @map("created_at")
   editedAt    DateTime?         @db.Timestamptz(3) @map("edited_at")
+
+  likes CommentLike[]
 
   @@index([targetType, targetId])
   @@index([parentId])
@@ -106,4 +108,19 @@ model Comment {
 
 enum CommentTargetType {
   POST
+}
+
+// ════════════════════════════════════════════════════════════════
+//  CommentLike — junction many-to-many (analogicznie do PostLike)
+// ════════════════════════════════════════════════════════════════
+model CommentLike {
+  commentId String   @db.Uuid @map("comment_id")
+  userId    String   @db.Uuid @map("user_id")
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+
+  @@id([commentId, userId])
+  @@index([userId])
+  @@map("comment_likes")
 }

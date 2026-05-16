@@ -1,6 +1,5 @@
 "use client";
-// Pojedynczy komentarz w drzewie. Renderuje się rekurencyjnie dla dzieci.
-// State po stronie klienta: tryb odpowiedzi (toggle), tryb edycji (toggle).
+// Pojedynczy komentarz — z lajkiem (nowy w 5c), reply, edycją, usuwaniem.
 
 import { useState, useTransition } from "react";
 import { CornerDownRight, Pencil, Trash2, X } from "lucide-react";
@@ -10,6 +9,7 @@ import { canEditComment, canDeleteComment, MAX_COMMENT_DEPTH } from "@/lib/comme
 import { formatRelativeDate, getInitial } from "@/lib/posts/utils";
 import type { CommentNode, CommentTargetType } from "@/lib/comments/types";
 import type { Role } from "@/lib/auth/permissions";
+import LikeButton from "@/components/post/LikeButton";
 import CommentForm from "./CommentForm";
 
 type Props = {
@@ -33,6 +33,7 @@ export default function CommentItem({
   const canEdit = canEditComment(viewer, comment);
   const canDelete = canDeleteComment(viewer, comment);
   const canReply = !!viewer && !comment.is_deleted && comment.depth < MAX_COMMENT_DEPTH;
+  const isOwnComment = !!viewer && viewer.id === comment.author_id;
 
   const authorName = comment.is_deleted
     ? "[użytkownik]"
@@ -132,6 +133,16 @@ export default function CommentItem({
 
           {!editOpen && !comment.is_deleted && (
             <div className="comment-actions">
+              {/* Generyczny LikeButton — targetType=comment */}
+              <LikeButton
+                targetType="comment"
+                targetId={comment.id}
+                initialLiked={comment.liked_by_me}
+                initialCount={comment.likes_count}
+                isLoggedIn={!!viewer}
+                isOwnContent={isOwnComment}
+                variant="compact"
+              />
               {canReply && (
                 <button
                   type="button"
@@ -177,7 +188,6 @@ export default function CommentItem({
             </div>
           )}
 
-          {/* Rekurencyjny render dzieci */}
           {comment.children.length > 0 && (
             <div className="comment-children">
               {comment.children.map((child) => (

@@ -3,22 +3,26 @@
 import type { CommentRow, CommentNode } from "./types";
 
 // Buduje drzewo komentarzy z płaskiej listy (po parent_id).
-// Sortowanie: w obrębie tego samego rodzica — chronologicznie (najstarsze pierwsze).
-// Komentarze bez parent_id (lub z nieznanym parent_id) trafiają jako root.
-export function buildCommentTree(comments: CommentRow[]): CommentNode[] {
-  // Najpierw posortuj po created_at — to gwarantuje że dzieci dorzucamy w kolejności
+// likedIds: zbiór ID komentarzy które bieżący user polubił — używany do
+// ustawienia liked_by_me na każdym węźle (potrzebne dla serca w UI).
+export function buildCommentTree(
+  comments: CommentRow[],
+  likedIds: Set<string> = new Set()
+): CommentNode[] {
   const sorted = [...comments].sort(
     (a, b) =>
       new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
   );
 
-  // Mapa id → node (z pustą tablicą dzieci do uzupełnienia)
   const map = new Map<string, CommentNode>();
   for (const c of sorted) {
-    map.set(c.id, { ...c, children: [] });
+    map.set(c.id, {
+      ...c,
+      children: [],
+      liked_by_me: likedIds.has(c.id),
+    });
   }
 
-  // Podpinanie dzieci pod rodziców
   const roots: CommentNode[] = [];
   for (const c of sorted) {
     const node = map.get(c.id)!;
@@ -32,7 +36,7 @@ export function buildCommentTree(comments: CommentRow[]): CommentNode[] {
   return roots;
 }
 
-// Polskie deklinacje liczby komentarzy: 1 komentarz / 2 komentarze / 5 komentarzy
+// Polskie deklinacje liczby komentarzy
 export function commentsLabel(n: number): string {
   if (n === 0) return "Brak komentarzy";
   if (n === 1) return "1 komentarz";

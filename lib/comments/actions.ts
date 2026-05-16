@@ -1,6 +1,6 @@
 "use server";
-// Server Actions dla komentarzy — generyczne, działają z każdym
-// "target_type" (na razie tylko POST, w przyszłości EVENT, RECIPE, ...).
+// Server Actions dla komentarzy: CRUD + toggle like.
+// Wszystko generyczne (target_type + target_id) — działa dla każdej encji.
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -14,13 +14,10 @@ import type { CommentTargetType } from "./types";
 
 export type CommentFormState = { error?: string } | null;
 
-// Ścieżka do revalidate w zależności od typu obiektu.
-// Dla POST komentarze siedzą na /posty/[id]. Gdy dorzucisz EVENT — dodaj case.
 function getTargetPath(targetType: CommentTargetType, targetId: string): string {
   switch (targetType) {
     case "POST":
       return `/posty/${targetId}`;
-    // case "EVENT": return `/wydarzenia/${targetId}`;
   }
 }
 
@@ -54,7 +51,6 @@ export async function createComment(
 
   let depth = 0;
   if (parentId) {
-    // Sprawdzamy depth rodzica + ograniczenie głębokości
     const { data: parent } = await supabase
       .from("comments")
       .select("depth, target_type, target_id")
@@ -83,11 +79,11 @@ export async function createComment(
   if (error) return { error: error.message };
 
   revalidatePath(getTargetPath(targetType, targetId));
-  return null; // success — formularz się zresetuje
+  return null;
 }
 
 // ════════════════════════════════════════════════════════════════
-//  UPDATE COMMENT — tylko autor, w oknie 15 min
+//  UPDATE COMMENT
 // ════════════════════════════════════════════════════════════════
 export async function updateComment(
   commentId: string,
@@ -138,10 +134,8 @@ export async function updateComment(
 }
 
 // ════════════════════════════════════════════════════════════════
-//  DELETE COMMENT (soft) — autor lub admin z comments.delete
+//  DELETE COMMENT (soft)
 // ════════════════════════════════════════════════════════════════
-// Soft delete: ustawiamy is_deleted=true i czyścimy content. Wątek dzieci
-// pozostaje widoczny — w UI pokazujemy "[komentarz usunięty]".
 export async function deleteComment(
   commentId: string
 ): Promise<{ error?: string } | undefined> {
@@ -169,7 +163,7 @@ export async function deleteComment(
   ]);
 
   if (!comment) return { error: "Komentarz nie istnieje." };
-  if (comment.is_deleted) return; // już usunięty — sukces no-op
+  if (comment.is_deleted) return;
   if (!profile) return { error: "Profil nie znaleziony." };
 
   const isAuthor = comment.author_id === user.id;
@@ -178,19 +172,80 @@ export async function deleteComment(
     return { error: "Nie masz uprawnień do usunięcia tego komentarza." };
   }
 
-  // Admin client bypassuje RLS — używamy go gdy moderator usuwa cudze
-  // (RLS UPDATE pozwala tylko autorowi). Dla autora też używamy admina
-  // dla spójności kodu — i tak właśnie sprawdziliśmy uprawnienia ręcznie.
   const admin = createAdminClient();
   const { error } = await admin
     .from("comments")
     .update({
       is_deleted: true,
-      content: "", // wymazujemy treść — anonimizacja
+      content: "",
     })
     .eq("id", commentId);
 
   if (error) return { error: error.message };
 
   revalidatePath(getTargetPath(comment.target_type, comment.target_id));
+}
+
+// ════════════════════════════════════════════════════════════════
+//  TOGGLE COMMENT LIKE — z blokadą self-like
+// ════════════════════════════════════════════════════════════════
+// Sygnatura identyczna z togglePostLike — generyczny LikeButton może
+// switchować między nimi po targetType.
+export async function toggleCommentLike(
+  commentId: string
+): Promise<{ liked: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { liked: false, error: "Musisz być zalogowany aby lajkować." };
+  }
+
+  // Pobieramy autora komentarza — sprawdzenie self-like + czy nie usunięty
+  const { data: comment } = await supabase
+    .from("comments")
+    .select("author_id, target_type, target_id, is_deleted")
+    .eq("id", commentId)
+    .single<{
+      author_id: string;
+      target_type: CommentTargetType;
+      target_id: string;
+      is_deleted: boolean;
+    }>();
+
+  if (!comment) return { liked: false, error: "Komentarz nie istnieje." };
+  if (comment.is_deleted) {
+    return { liked: false, error: "Nie można polubić usuniętego komentarza." };
+  }
+  if (comment.author_id === user.id) {
+    return { liked: false, error: "Nie możesz polubić własnego komentarza." };
+  }
+
+  // Sprawdzamy czy już polubił
+  const { data: existing } = await supabase
+    .from("comment_likes")
+    .select("comment_id")
+    .eq("comment_id", commentId)
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (existing) {
+    // UNLIKE
+    const { error } = await supabase
+      .from("comment_likes")
+      .delete()
+      .eq("comment_id", commentId)
+      .eq("user_id", user.id);
+    if (error) return { liked: true, error: error.message };
+    revalidatePath(getTargetPath(comment.target_type, comment.target_id));
+    return { liked: false };
+  }
+
+  // LIKE — RLS dodatkowo sprawdza że user nie jest autorem
+  const { error } = await supabase
+    .from("comment_likes")
+    .insert({ comment_id: commentId, user_id: user.id });
+
+  if (error) return { liked: false, error: error.message };
+  revalidatePath(getTargetPath(comment.target_type, comment.target_id));
+  return { liked: true };
 }

@@ -1,4 +1,4 @@
-// Karta posta na liście — z licznikami lajków i komentarzy w stopce.
+// Karta posta na liście — lajki + licznik komentarzy w stopce.
 
 import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
@@ -61,16 +61,14 @@ export default function PostCard({ post, currentUserId }: Props) {
         </div>
       </Link>
 
-      {/* Footer z lajkami + licznikiem komentarzy. Lajk poza Link żeby klik
-          w serce nie nawigował. Comment count to Link z anchorem #comments —
-          jednym klikiem przeskakujesz prosto do sekcji dyskusji. */}
       <footer className="post-card-footer">
         <LikeButton
-          postId={post.id}
+          targetType="post"
+          targetId={post.id}
           initialLiked={post.liked_by_me}
           initialCount={post.likes_count}
           isLoggedIn={currentUserId !== null}
-          isOwnPost={isOwnPost}
+          isOwnContent={isOwnPost}
           variant="compact"
         />
         <Link

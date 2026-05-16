@@ -36,11 +36,12 @@ export default function PostLikesSection({
   return (
     <div className="post-likes-section">
       <LikeButton
-        postId={postId}
+        targetType="post"
+        targetId={postId}
         initialLiked={initialLiked}
         initialCount={initialCount}
         isLoggedIn={isLoggedIn}
-        isOwnPost={isOwnPost}
+        isOwnContent={isOwnPost}
         variant="full"
         onCountChange={setCount}
       />
