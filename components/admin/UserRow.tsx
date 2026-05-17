@@ -1,6 +1,5 @@
 "use client";
-// Pojedynczy wiersz w tabeli userów. Po kliknięciu "Edytuj" rozwija się
-// inline EditUserForm pod wierszem.
+// Pojedynczy wiersz tabeli userów + inline edycja po rozwinięciu + status online.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -15,6 +14,39 @@ type Props = {
   canEdit: boolean;
 };
 
+// Mały subkomponent — wskaźnik aktywności (kolor kropki + label)
+function OnlineStatus({ lastSeen }: { lastSeen: string | null }) {
+  if (!lastSeen) {
+    return (
+      <span className="online-status online-never">
+        <span className="online-dot" /> nigdy
+      </span>
+    );
+  }
+  const diffMs = Date.now() - new Date(lastSeen).getTime();
+  const diffMin = diffMs / 60_000;
+
+  if (diffMin < 5) {
+    return (
+      <span className="online-status online-now">
+        <span className="online-dot" /> online
+      </span>
+    );
+  }
+  if (diffMin < 60) {
+    return (
+      <span className="online-status online-recent">
+        <span className="online-dot" /> {Math.floor(diffMin)} min temu
+      </span>
+    );
+  }
+  return (
+    <span className="online-status online-away">
+      <span className="online-dot" /> {formatRelativeDate(lastSeen)}
+    </span>
+  );
+}
+
 export default function UserRow({ user, isSelf, canEdit }: Props) {
   const [editing, setEditing] = useState(false);
 
@@ -22,9 +54,6 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
     user.nickname ?? user.email?.split("@")[0] ?? "anonim";
   const initial = getInitial(user.nickname ?? user.email);
   const permissions = user.permissions ?? [];
-
-  // MASTER nie do edycji przez panel (tylko DB)
-  // Sam siebie też nie da się edytować (zabezpieczenie żeby się nie zablokować)
   const isEditable = canEdit && !isSelf && user.role !== "MASTER";
 
   return (
@@ -65,6 +94,10 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
               <UserIcon size={12} /> User
             </span>
           )}
+        </div>
+
+        <div>
+          <OnlineStatus lastSeen={user.last_seen_at} />
         </div>
 
         <div className="admin-permissions-cell">

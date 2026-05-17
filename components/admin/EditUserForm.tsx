@@ -1,8 +1,8 @@
 "use client";
-// Inline formularz edycji jednego usera (rozwija się pod jego wierszem).
-// Pozwala zmienić rolę USER ↔ ADMIN i toggle uprawnień z whitelisty.
+// Inline formularz edycji jednego usera (rola + uprawnienia jako tabela).
 
 import { useState, useTransition } from "react";
+import { Check } from "lucide-react";
 import { toast } from "sonner";
 import {
   AVAILABLE_PERMISSIONS,
@@ -26,7 +26,6 @@ type Props = {
 };
 
 export default function EditUserForm({ user, onSaved, onCancel }: Props) {
-  // MASTER excluded — w UI userzy z MASTER mają inline lock, nie dochodzi tu nigdy
   const [role, setRole] = useState<"USER" | "ADMIN">(
     user.role === "ADMIN" ? "ADMIN" : "USER"
   );
@@ -53,7 +52,7 @@ export default function EditUserForm({ user, onSaved, onCancel }: Props) {
     });
   }
 
-  // Domyślne uprawnienia z wybranej roli — pokazujemy info-tag
+  // Domyślne uprawnienia z aktualnie wybranej roli — pokazujemy w kolumnie "Z roli"
   const rolePermissions = ROLE_PERMISSIONS[role] ?? [];
 
   return (
@@ -72,44 +71,61 @@ export default function EditUserForm({ user, onSaved, onCancel }: Props) {
         </select>
         <div className="admin-edit-help">
           MASTER można nadać tylko bezpośrednio w bazie (SQL Editor Supabase).
-          Po zmianie roli na ADMIN automatycznie dostaje wszystkie uprawnienia
-          moderacji.
+          ADMIN automatycznie ma uprawnienia moderacji.
         </div>
       </div>
 
       <div className="admin-edit-field">
-        <label>Dodatkowe uprawnienia (extra do roli)</label>
-        <div className="permissions-list">
-          {AVAILABLE_PERMISSIONS.map((perm) => {
-            const fromRole = rolePermissions.includes(perm);
-            const explicit = permissions.includes(perm);
-            return (
-              <label key={perm} className="permission-checkbox">
-                <input
-                  type="checkbox"
-                  checked={explicit}
-                  onChange={() => togglePermission(perm)}
-                />
-                <div className="permission-info">
-                  <div className="permission-name">
-                    {PERMISSION_LABELS[perm]}
-                    {fromRole && (
-                      <span className="permission-from-role">
-                        {" "}(już z roli)
-                      </span>
-                    )}
-                  </div>
-                  <div className="permission-desc">
+        <label>Uprawnienia</label>
+        <table className="permissions-table">
+          <thead>
+            <tr>
+              <th>Uprawnienie</th>
+              <th>Opis</th>
+              <th title="Czy ta rola domyślnie ma to uprawnienie">Z roli</th>
+              <th title="Czy nadać ekstra niezależnie od roli">Nadane</th>
+            </tr>
+          </thead>
+          <tbody>
+            {AVAILABLE_PERMISSIONS.map((perm) => {
+              const fromRole = rolePermissions.includes(perm);
+              const explicit = permissions.includes(perm);
+              return (
+                <tr key={perm}>
+                  <td className="permission-name-cell">
+                    <code>{perm}</code>
+                    <div className="permission-label">
+                      {PERMISSION_LABELS[perm]}
+                    </div>
+                  </td>
+                  <td className="permission-desc-cell">
                     {PERMISSION_DESCRIPTIONS[perm]}
-                  </div>
-                </div>
-              </label>
-            );
-          })}
-        </div>
+                  </td>
+                  <td className="permission-check-cell">
+                    {fromRole ? (
+                      <Check size={16} className="check-yes" />
+                    ) : (
+                      <span className="check-no">—</span>
+                    )}
+                  </td>
+                  <td className="permission-check-cell">
+                    <input
+                      type="checkbox"
+                      checked={explicit}
+                      onChange={() => togglePermission(perm)}
+                      className="permission-checkbox-input"
+                      aria-label={`Nadaj ${perm}`}
+                    />
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
         <div className="admin-edit-help">
-          Te uprawnienia są dorzucane <em>poza</em> rolą. Np. USER z
-          "posts.delete" może moderować, choć nie jest ADMINEM.
+          "Z roli" — automatycznie z wybranej roli. "Nadane" — extra, zapisane
+          w polu <code>permissions[]</code>. Suma tych dwóch determinuje co
+          user faktycznie może zrobić.
         </div>
       </div>
 

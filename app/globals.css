@@ -2194,3 +2194,324 @@ img { max-width: 100%; display: block; }
   .profile-stats { padding: 24px 16px; }
   .profile-posts { padding: 0 16px 60px; }
 }
+
+
+/* ════════════════════════════════════════════════
+   POST CARD — przebudowany z 1 Linka na 3 Linki
+   ════════════════════════════════════════════════ */
+.post-card {
+  background: var(--color-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  transition: transform 0.2s, box-shadow 0.2s;
+  display: flex;
+  flex-direction: column;
+}
+.post-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-card); }
+
+.post-card .image-wrap {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+}
+
+/* Link zdjęcia — wypełnia cały image-wrap pod overlay-em */
+.post-card .image-link {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+.post-card .image-link img,
+.post-card .image-link .img-placeholder {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Overlay z gradientem i tekstem — pozycjonowany ABSOLUTNIE nad image-link,
+   ale NIE w jego środku (sibling, nie nested). pointer-events: none na tle,
+   żeby klik w "puste" miejsca trafiał w image-link pod spodem. */
+.post-card .image-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.92) 60%, rgba(0, 0, 0, 0));
+  padding: 32px 20px 16px;
+  color: white;
+  pointer-events: none;  /* Same tło niereagujące — kliki przechodzą do image-link */
+}
+.post-card .image-overlay .title-link,
+.post-card .image-overlay .author-link {
+  pointer-events: auto;  /* Linki w środku ŁAPIĄ kliki */
+}
+
+/* Link tytułu */
+.post-card .image-overlay .title-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.post-card .image-overlay .title {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--color-cream);
+  margin-bottom: 6px;
+  line-height: 1.25;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.post-card .image-overlay .title-link:hover .title {
+  text-decoration: underline;
+  text-decoration-color: var(--color-cream);
+}
+
+.post-card .image-overlay .meta {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.75);
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Link autora */
+.post-card .image-overlay .author-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.post-card .image-overlay .author-link:hover {
+  color: var(--color-cinnamon-light);
+}
+.post-card .image-overlay .author-link .author-name {
+  text-decoration: none;
+}
+.post-card .image-overlay .author-link:hover .author-name {
+  text-decoration: underline;
+}
+
+/* Link body (excerpt + read more) */
+.post-card .body-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  flex: 1;
+}
+.post-card .body-link:hover { color: inherit; }
+.post-card .body { padding: 20px; }
+.post-card .excerpt {
+  color: var(--color-text);
+  font-size: 14px;
+  white-space: pre-wrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+.post-card .read-more {
+  color: var(--color-teal-light);
+  font-weight: 600;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ════════════════════════════════════════════════
+   AUTHOR LINK W HERO SINGLE POST
+   ════════════════════════════════════════════════ */
+.single-post .author-link-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: inherit;
+  text-decoration: none;
+  transition: color 0.15s;
+}
+.single-post .author-link-hero:hover {
+  color: var(--color-cinnamon-light);
+  text-decoration: underline;
+}
+
+/* ════════════════════════════════════════════════
+   AUTHOR LINK W KOMENTARZACH
+   ════════════════════════════════════════════════ */
+.comment-avatar-link {
+  display: inline-flex;
+  flex-shrink: 0;
+  border-radius: 50%;
+  overflow: hidden;
+  transition: opacity 0.15s;
+}
+.comment-avatar-link:hover { opacity: 0.85; }
+
+.comment-author-link {
+  text-decoration: none;
+  color: inherit;
+  transition: color 0.15s;
+}
+.comment-author-link:hover .nick {
+  color: var(--color-cinnamon-light);
+  text-decoration: underline;
+}
+
+/* ════════════════════════════════════════════════
+   PROFILE — 4 STATY zamiast 2
+   ════════════════════════════════════════════════ */
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  padding: 32px 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+@media (max-width: 900px) {
+  .profile-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .profile-stats { grid-template-columns: 1fr; }
+}
+
+.stat-card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 24px 16px;
+  text-align: center;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-cinnamon-dark);
+}
+.stat-icon {
+  color: var(--color-cinnamon-light);
+  margin: 0 auto 8px;
+  display: block;
+}
+.stat-value {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 32px;
+  color: var(--color-cream);
+  font-weight: 700;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+.stat-label {
+  color: var(--color-text-muted);
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+/* ════════════════════════════════════════════════
+   PROFILE — sekcja (ostatnie posty / komentarze)
+   ════════════════════════════════════════════════ */
+.profile-section {
+  padding: 24px 24px 16px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+.profile-section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.profile-section-header h2 {
+  font-family: var(--font-playfair), Georgia, serif;
+  font-size: 24px;
+}
+.profile-section-more {
+  font-size: 13px;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ════════════════════════════════════════════════
+   RECENT COMMENT (na profilu)
+   ════════════════════════════════════════════════ */
+.recent-comments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.recent-comment {
+  display: flex;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.2s, transform 0.15s;
+}
+.recent-comment:hover {
+  border-color: var(--color-teal-dark);
+  transform: translateX(2px);
+  color: inherit;
+}
+.recent-comment-icon {
+  flex-shrink: 0;
+  color: var(--color-teal-light);
+  margin-top: 2px;
+}
+.recent-comment-content {
+  flex: 1;
+  min-width: 0;
+}
+.recent-comment-body {
+  color: var(--color-text);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.recent-comment-meta {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.recent-comment-target strong {
+  color: var(--color-cream);
+}
+.recent-comment-likes {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--color-danger);
+}
+
+/* Kompaktowy empty state (dla komentarzy) */
+.empty-state.empty-state-compact {
+  padding: 32px 20px;
+  background: transparent;
+  border-style: dashed;
+}
+
+/* Drobna poprawka dla profile-posts — używa teraz .profile-section */
+.profile-page .profile-section .posts-grid {
+  margin-top: 0;
+}

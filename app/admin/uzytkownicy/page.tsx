@@ -18,6 +18,7 @@ export type AdminUserRow = {
   role: Role;
   permissions: string[] | null;
   created_at: string;
+  last_seen_at: string | null;
 };
 
 export default async function AdminUsersPage() {
@@ -26,7 +27,9 @@ export default async function AdminUsersPage() {
 
   const { data: users } = await supabase
     .from("profiles")
-    .select("id, email, nickname, avatar_url, role, permissions, created_at")
+    .select(
+      "id, email, nickname, avatar_url, role, permissions, created_at, last_seen_at"
+    )
     .order("created_at", { ascending: false })
     .returns<AdminUserRow[]>();
 
@@ -58,6 +61,7 @@ export default async function AdminUsersPage() {
         <div className="admin-users-row admin-users-header-row">
           <div>Użytkownik</div>
           <div>Rola</div>
+          <div>Status</div>
           <div>Uprawnienia</div>
           <div>Dołączył</div>
           <div></div>
