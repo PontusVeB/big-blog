@@ -1,11 +1,11 @@
 "use client";
-// Kliencka część navbara — logo + menu usera + lucide ikony.
+// Kliencka część navbara — logo + menu + dzwonek powiadomień + dropdown usera.
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Menu, X, LogIn, UserPlus, Plus,
+  Menu, X, LogIn, UserPlus, Plus, Bell,
   User, UserCog, Shield, LogOut, FilePen,
 } from "lucide-react";
 import { logout } from "@/lib/auth/actions";
@@ -24,7 +24,12 @@ const links = [
   { href: "/o-blogu", label: "O blogu" },
 ];
 
-export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
+type Props = {
+  profile: NavbarProfile;
+  unreadCount: number;
+};
+
+export default function NavbarClient({ profile, unreadCount }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -71,6 +76,25 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
             <Link href="/posty/nowy" className="btn btn-primary navbar-new-post">
               <Plus size={16} /> Nowy post
             </Link>
+
+            {/* Dzwonek powiadomień — czerwony badge jeśli są nieprzeczytane */}
+            <Link
+              href="/powiadomienia"
+              className="navbar-bell"
+              aria-label={
+                unreadCount > 0
+                  ? `Powiadomienia (${unreadCount} nieprzeczytanych)`
+                  : "Powiadomienia"
+              }
+            >
+              <Bell size={20} />
+              {unreadCount > 0 && (
+                <span className="navbar-bell-badge">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </Link>
+
             <div className="user-menu" ref={userMenuRef}>
               <button
                 className="avatar"
@@ -98,6 +122,12 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
                   </Link>
                   <Link href="/posty/nowy" onClick={() => setUserMenuOpen(false)}>
                     <FilePen size={16} /> Nowy post
+                  </Link>
+                  <Link href="/powiadomienia" onClick={() => setUserMenuOpen(false)}>
+                    <Bell size={16} /> Powiadomienia
+                    {unreadCount > 0 && (
+                      <span className="user-menu-badge">{unreadCount}</span>
+                    )}
                   </Link>
                   {isAdmin && (
                     <Link href="/admin" onClick={() => setUserMenuOpen(false)}>
@@ -143,9 +173,17 @@ export default function NavbarClient({ profile }: { profile: NavbarProfile }) {
             </Link>
           ))}
           {profile ? (
-            <Link href="/posty/nowy" onClick={() => setMenuOpen(false)}>
-              <Plus size={16} /> Nowy post
-            </Link>
+            <>
+              <Link href="/posty/nowy" onClick={() => setMenuOpen(false)}>
+                <Plus size={16} /> Nowy post
+              </Link>
+              <Link href="/powiadomienia" onClick={() => setMenuOpen(false)}>
+                <Bell size={16} /> Powiadomienia
+                {unreadCount > 0 && (
+                  <span className="user-menu-badge">{unreadCount}</span>
+                )}
+              </Link>
+            </>
           ) : (
             <>
               <Link href="/logowanie" onClick={() => setMenuOpen(false)}>

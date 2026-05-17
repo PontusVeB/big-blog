@@ -2515,3 +2515,153 @@ img { max-width: 100%; display: block; }
 .profile-page .profile-section .posts-grid {
   margin-top: 0;
 }
+
+.admin-stats,
+.profile-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+}
+.admin-stats { margin-bottom: 40px; }
+/* profile-stats ma własne padding/max-width — zostawiamy */
+
+/* ════════════════════════════════════════════════
+   ADMIN USERS TABLE — z kolumną Status
+   ════════════════════════════════════════════════ */
+.admin-users-row {
+  /* 6 kolumn: user | rola | status | uprawnienia | dolaczyl | akcje */
+  grid-template-columns: 2fr 0.9fr 1.1fr 1.5fr 0.9fr auto;
+}
+@media (max-width: 1000px) {
+  .admin-users-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .admin-users-header-row { display: none; }
+}
+
+/* ════════════════════════════════════════════════
+   ONLINE STATUS — kolor kropki + tekst
+   ════════════════════════════════════════════════ */
+.online-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+.online-status .online-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--color-text-dim);
+}
+/* Online (< 5 min) */
+.online-status.online-now { color: var(--color-success); }
+.online-status.online-now .online-dot {
+  background: var(--color-success);
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+}
+/* Niedawno (< 60 min) */
+.online-status.online-recent { color: var(--color-cinnamon-light); }
+.online-status.online-recent .online-dot {
+  background: var(--color-cinnamon-light);
+}
+/* Dawniej */
+.online-status.online-away { color: var(--color-text-muted); }
+/* Nigdy */
+.online-status.online-never {
+  color: var(--color-text-dim);
+  font-style: italic;
+}
+
+/* ════════════════════════════════════════════════
+   PERMISSIONS TABLE — czytelna tabela zamiast checkboxów
+   ════════════════════════════════════════════════ */
+.permissions-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  font-size: 13px;
+}
+.permissions-table thead {
+  background: var(--color-anthracite-3);
+}
+.permissions-table th {
+  text-align: left;
+  padding: 10px 14px;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  border-bottom: 1px solid var(--color-border);
+}
+.permissions-table th:nth-child(3),
+.permissions-table th:nth-child(4) {
+  text-align: center;
+  width: 80px;
+}
+.permissions-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+.permissions-table tr:last-child td {
+  border-bottom: none;
+}
+.permissions-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.permission-name-cell code {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--color-teal-light);
+  background: rgba(6, 148, 148, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-block;
+}
+.permission-name-cell .permission-label {
+  margin-top: 4px;
+  color: var(--color-cream);
+  font-weight: 500;
+}
+.permission-desc-cell {
+  color: var(--color-text-muted);
+  line-height: 1.5;
+  max-width: 400px;
+}
+.permission-check-cell {
+  text-align: center;
+}
+.permission-check-cell .check-yes {
+  color: var(--color-success);
+}
+.permission-check-cell .check-no {
+  color: var(--color-text-dim);
+}
+.permission-checkbox-input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--color-teal);
+  cursor: pointer;
+}
+
+@media (max-width: 700px) {
+  .permissions-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+  }
+  .permission-desc-cell {
+    max-width: 200px;
+    white-space: normal;
+  }
+}

@@ -26,10 +26,13 @@ model Profile {
   createdAt   DateTime  @default(now()) @db.Timestamptz(3) @map("created_at")
   updatedAt   DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
 
-  posts        Post[]
-  postLikes    PostLike[]
-  comments     Comment[]
-  commentLikes CommentLike[]
+  posts                 Post[]
+  postLikes             PostLike[]
+  comments              Comment[]
+  commentLikes          CommentLike[]
+  // Powiadomienia są dwustronne — user jest "recipientem" lub "actorem"
+  notificationsReceived Notification[] @relation("recipientNotifications")
+  notificationsCreated  Notification[] @relation("actorNotifications")
 
   @@map("profiles")
 }
@@ -79,7 +82,7 @@ model PostLike {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  Comment — polimorficzny
+//  Comment
 // ════════════════════════════════════════════════════════════════
 model Comment {
   id          String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
@@ -93,7 +96,6 @@ model Comment {
   children    Comment[]         @relation("CommentTree")
   depth       Int               @default(0)
   isDeleted   Boolean           @default(false) @map("is_deleted")
-  // Denormalizowany licznik lajków — trigger update_comment_likes_count()
   likesCount  Int               @default(0) @map("likes_count")
   createdAt   DateTime          @default(now()) @db.Timestamptz(3) @map("created_at")
   editedAt    DateTime?         @db.Timestamptz(3) @map("edited_at")
@@ -111,7 +113,7 @@ enum CommentTargetType {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  CommentLike — junction many-to-many (analogicznie do PostLike)
+//  CommentLike
 // ════════════════════════════════════════════════════════════════
 model CommentLike {
   commentId String   @db.Uuid @map("comment_id")
@@ -123,4 +125,38 @@ model CommentLike {
   @@id([commentId, userId])
   @@index([userId])
   @@map("comment_likes")
+}
+
+// ════════════════════════════════════════════════════════════════
+//  Notification — system powiadomień
+// ════════════════════════════════════════════════════════════════
+// recipient — komu się wyświetli powiadomienie
+// actor     — kto wykonał akcję (może być null gdy system)
+// type      — rodzaj zdarzenia (COMMENT_ON_POST, REPLY_TO_COMMENT, ...)
+// source    — co jest źródłem (polimorficzne: 'comment' + id komentarza)
+// is_read   — czy user już je przeczytał
+//
+// Tworzone automatycznie przez triggery SQL (create_comment_notification).
+// User nigdy nie wstawia bezpośrednio (brak polityki RLS INSERT).
+model Notification {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  recipientId String           @db.Uuid @map("recipient_id")
+  recipient   Profile          @relation("recipientNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
+  actorId     String?          @db.Uuid @map("actor_id")
+  actor       Profile?         @relation("actorNotifications", fields: [actorId], references: [id], onDelete: SetNull)
+  type        NotificationType
+  sourceType  String?          @db.VarChar(50) @map("source_type")
+  sourceId    String?          @db.Uuid @map("source_id")
+  isRead      Boolean          @default(false) @map("is_read")
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3) @map("created_at")
+
+  @@index([recipientId, isRead])
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  COMMENT_ON_POST      // ktoś skomentował Twój post
+  REPLY_TO_COMMENT     // ktoś odpowiedział na Twój komentarz
+  // Future: LIKE_ON_POST, LIKE_ON_COMMENT, MENTION, ADMIN_ACTION
 }
