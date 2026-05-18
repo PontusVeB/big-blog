@@ -3,22 +3,33 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import RegisterForm from "@/components/auth/RegisterForm";
+import OAuthButtons from "@/components/auth/OAuthButtons";
 
 export const metadata: Metadata = {
-  title: "Rejestracja • Big Blog",
+  title: "Rejestracja",
 };
 
 export default async function RegisterPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (user) redirect("/");
 
   return (
     <div className="auth-page">
       <div className="auth-card">
         <h1>Rejestracja</h1>
-        <p className="auth-subtitle">Załóż darmowe konto w 30 sekund.</p>
+        <p className="auth-subtitle">Załóż darmowe konto w 30 sekund — przez Google, Facebook lub email.</p>
+
+        <OAuthButtons />
+
+        <div className="auth-divider">
+          <span>lub email i hasło</span>
+        </div>
+
         <RegisterForm />
+
         <div className="auth-footer">
           Masz już konto?{" "}
           <Link href="/logowanie">Zaloguj się</Link>

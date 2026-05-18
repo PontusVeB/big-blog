@@ -1321,3 +1321,78 @@ img { max-width: 100%; display: block; }
   border-radius: var(--radius-md) !important;
   box-shadow: var(--shadow-card) !important;
 }
+
+
+/* ════════════════════════════════════════════════════════════════
+2026-05-18: DODANE STYLE DLA PRZYCISKÓW OAUTH I DIVIDERA ORAZ DROBNE KOREKTY TYPOGRAFII W CAŁYM PROJEKCIE (GŁÓWNIE FONT-WEIGHTY I KOLORY TEKSTU)
+   ════════════════════════════════════════════════════════════════ */
+.oauth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.oauth-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  justify-content: center;
+  transition: opacity 0.15s, transform 0.1s;
+  border: none;
+  font-family: var(--font-inter), sans-serif;
+}
+.oauth-btn:hover { opacity: 0.92; }
+.oauth-btn:active { transform: scale(0.98); }
+.oauth-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.oauth-btn:disabled:hover { opacity: 0.6; }
+.oauth-btn svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* Google — białe tło z czarnym tekstem (zgodnie z brand guidelines) */
+.oauth-btn-google {
+  background: #ffffff;
+  color: #1f2937;
+  border: 1px solid #d1d5db;
+}
+.oauth-btn-google:hover {
+  background: #f9fafb;
+  opacity: 1;
+}
+
+/* Facebook — oficjalna brand barwa */
+.oauth-btn-facebook {
+  background: #1877F2;
+  color: white;
+}
+
+/* Dzielnik "lub email i hasło" pomiędzy OAuth a tradycyjnym loginem */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 20px 0;
+  color: var(--color-text-dim);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: "";
+  flex: 1;
+  border-bottom: 1px solid var(--color-border);
+}
+.auth-divider span {
+  padding: 0 12px;
+}

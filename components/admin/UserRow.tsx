@@ -1,5 +1,6 @@
 "use client";
-// Pojedynczy wiersz tabeli userów + inline edycja po rozwinięciu + status online.
+// Pojedynczy wiersz tabeli userów + inline edycja + status online.
+// Komórki mają data-label żeby na mobile pokazać etykietę "Rola:", "Status:" itd.
 
 import { useState } from "react";
 import Link from "next/link";
@@ -14,7 +15,6 @@ type Props = {
   canEdit: boolean;
 };
 
-// Mały subkomponent — wskaźnik aktywności (kolor kropki + label)
 function OnlineStatus({ lastSeen }: { lastSeen: string | null }) {
   if (!lastSeen) {
     return (
@@ -59,6 +59,7 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
   return (
     <>
       <div className="admin-users-row">
+        {/* User cell — na mobile renderowany jako header karty (bez data-label) */}
         <div className="admin-user-cell">
           {user.avatar_url ? (
             <img
@@ -78,7 +79,7 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
           </div>
         </div>
 
-        <div>
+        <div data-label="Rola">
           {user.role === "MASTER" && (
             <span className="role-badge role-master">
               <Crown size={12} /> Master
@@ -96,11 +97,11 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
           )}
         </div>
 
-        <div>
+        <div data-label="Status">
           <OnlineStatus lastSeen={user.last_seen_at} />
         </div>
 
-        <div className="admin-permissions-cell">
+        <div className="admin-permissions-cell" data-label="Uprawnienia">
           {permissions.length === 0 ? (
             <span className="admin-permissions-empty">(z roli)</span>
           ) : (
@@ -112,7 +113,7 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
           )}
         </div>
 
-        <div className="admin-joined-cell">
+        <div className="admin-joined-cell" data-label="Dołączył">
           {formatRelativeDate(user.created_at)}
         </div>
 
