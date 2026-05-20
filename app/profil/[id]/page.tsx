@@ -1,17 +1,12 @@
 // Publiczny profil usera — hero + 4 statystyki + ostatnie posty (3) + ostatnie komentarze (3).
-// Wszystkie liczniki to:
-//   - Posty:                COUNT(*) z tabeli posts (autor=X)
-//   - Komentarze:           COUNT(*) z comments (autor=X, NOT is_deleted)
-//   - Polubienia oddane:    COUNT(*) z post_likes + comment_likes (user=X)
-//   - Polubienia otrzymane: SUM(likes_count) na postach i komentarzach (autor=X)
-// Wszystko równolegle w jednym Promise.all.
+// Faza 14: na cudzym profilu pojawia się przycisk "Napisz wiadomość".
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   UserCog, Calendar, FilePen, MessageCircle, Heart, HeartHandshake,
-  Shield, Crown,
+  Shield, Crown, Mail,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/post/PostCard";
@@ -92,7 +87,6 @@ export default async function ProfilePage({
     { count: postLikesGiven },
     { count: commentLikesGiven },
   ] = await Promise.all([
-    // Posty tego usera (wszystkie — do liczenia + 3 najnowsze do display)
     supabase
       .from("posts")
       .select(
@@ -105,7 +99,6 @@ export default async function ProfilePage({
       .eq("author_id", id)
       .order("created_at", { ascending: false })
       .returns<PostWithAuthor[]>(),
-    // Komentarze tego usera (NOT deleted)
     supabase
       .from("comments")
       .select("id, content, target_id, likes_count, created_at", {
@@ -115,12 +108,10 @@ export default async function ProfilePage({
       .eq("is_deleted", false)
       .order("created_at", { ascending: false })
       .returns<UserComment[]>(),
-    // Polubienia postów oddane przez tego usera
     supabase
       .from("post_likes")
       .select("*", { count: "exact", head: true })
       .eq("user_id", id),
-    // Polubienia komentarzy oddane przez tego usera
     supabase
       .from("comment_likes")
       .select("*", { count: "exact", head: true })
@@ -130,7 +121,6 @@ export default async function ProfilePage({
   const posts = userPosts ?? [];
   const comments = userComments ?? [];
 
-  // Liczniki agregowane po JS-ie (na bazie już pobranych danych)
   const postsCount = posts.length;
   const totalCommentsCount = commentsCount ?? comments.length;
   const totalLikesGiven = (postLikesGiven ?? 0) + (commentLikesGiven ?? 0);
@@ -141,11 +131,9 @@ export default async function ProfilePage({
   );
   const totalLikesReceived = postLikesReceived + commentLikesReceived;
 
-  // 3) Posty/komentarze do wyświetlenia (3 najnowsze)
   const recentPosts = posts.slice(0, 3);
   const recentComments = comments.slice(0, 3);
 
-  // 4) Lajki bieżącego usera na recent posts (do podświetlenia serc w PostCard)
   let likedIds = new Set<string>();
   if (user && recentPosts.length > 0) {
     const postIds = recentPosts.map((p) => p.id);
@@ -162,7 +150,6 @@ export default async function ProfilePage({
     liked_by_me: likedIds.has(p.id),
   }));
 
-  // 5) Tytuły postów pod którymi są ostatnie komentarze (do wyświetlenia)
   const recentTargetIds = [...new Set(recentComments.map((c) => c.target_id))];
   let postTitlesMap = new Map<string, string>();
   if (recentTargetIds.length > 0) {
@@ -175,7 +162,6 @@ export default async function ProfilePage({
     );
   }
 
-  // Bookkeeping
   const isOwnProfile = user?.id === profile.id;
   const displayName =
     profile.nickname ?? profile.email.split("@")[0] ?? "anonim";
@@ -220,11 +206,18 @@ export default async function ProfilePage({
               <Calendar size={14} /> Dołączył {joinedFormatted}
             </span>
           </div>
-          {isOwnProfile && (
+          {isOwnProfile ? (
             <Link href="/profil/edycja" className="btn btn-secondary">
               <UserCog size={16} /> Edytuj profil
             </Link>
-          )}
+          ) : user ? (
+            <Link
+              href={`/wiadomosci/${profile.id}`}
+              className="btn btn-secondary"
+            >
+              <Mail size={16} /> Napisz wiadomość
+            </Link>
+          ) : null}
         </div>
       </section>
 

@@ -1,11 +1,11 @@
 "use client";
-// Kliencka część navbara — logo + menu + wyszukiwarka + dzwonek + dropdown usera.
+// Kliencka część navbara — logo + menu + wyszukiwarka + wiadomości + dzwonek + dropdown usera.
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {
-  Menu, X, LogIn, UserPlus, Plus, Bell,
+  Menu, X, LogIn, UserPlus, Plus, Bell, Mail,
   User, UserCog, Shield, LogOut, FilePen,
 } from "lucide-react";
 import { logout } from "@/lib/auth/actions";
@@ -28,9 +28,14 @@ const links = [
 type Props = {
   profile: NavbarProfile;
   unreadCount: number;
+  unreadMessages: number;
 };
 
-export default function NavbarClient({ profile, unreadCount }: Props) {
+export default function NavbarClient({
+  profile,
+  unreadCount,
+  unreadMessages,
+}: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -83,7 +88,25 @@ export default function NavbarClient({ profile, unreadCount }: Props) {
               <Plus size={16} /> Nowy post
             </Link>
 
-            {/* Dzwonek powiadomień — czerwony badge jeśli są nieprzeczytane */}
+            {/* Wiadomości — koperta z licznikiem nieprzeczytanych */}
+            <Link
+              href="/wiadomosci"
+              className="navbar-bell"
+              aria-label={
+                unreadMessages > 0
+                  ? `Wiadomości (${unreadMessages} nieprzeczytanych)`
+                  : "Wiadomości"
+              }
+            >
+              <Mail size={20} />
+              {unreadMessages > 0 && (
+                <span className="navbar-bell-badge">
+                  {unreadMessages > 99 ? "99+" : unreadMessages}
+                </span>
+              )}
+            </Link>
+
+            {/* Powiadomienia — dzwonek z licznikiem nieprzeczytanych */}
             <Link
               href="/powiadomienia"
               className="navbar-bell"
@@ -129,6 +152,12 @@ export default function NavbarClient({ profile, unreadCount }: Props) {
                   <Link href="/posty/nowy" onClick={() => setUserMenuOpen(false)}>
                     <FilePen size={16} /> Nowy post
                   </Link>
+                  <Link href="/wiadomosci" onClick={() => setUserMenuOpen(false)}>
+                    <Mail size={16} /> Wiadomości
+                    {unreadMessages > 0 && (
+                      <span className="user-menu-badge">{unreadMessages}</span>
+                    )}
+                  </Link>
                   <Link href="/powiadomienia" onClick={() => setUserMenuOpen(false)}>
                     <Bell size={16} /> Powiadomienia
                     {unreadCount > 0 && (
@@ -173,8 +202,7 @@ export default function NavbarClient({ profile, unreadCount }: Props) {
 
       {menuOpen && (
         <div className="mobile-menu">
-          {/* Wyszukiwarka w menu mobilnym — bez dropdownu podpowiedzi
-              (działa na Enter; dropdown w hamburgerze byłby ciasny). */}
+          {/* Wyszukiwarka w menu mobilnym — bez dropdownu podpowiedzi */}
           <div className="mobile-search">
             <SearchBar variant="compact" withSuggestions={false} />
           </div>
@@ -188,6 +216,12 @@ export default function NavbarClient({ profile, unreadCount }: Props) {
             <>
               <Link href="/posty/nowy" onClick={() => setMenuOpen(false)}>
                 <Plus size={16} /> Nowy post
+              </Link>
+              <Link href="/wiadomosci" onClick={() => setMenuOpen(false)}>
+                <Mail size={16} /> Wiadomości
+                {unreadMessages > 0 && (
+                  <span className="user-menu-badge">{unreadMessages}</span>
+                )}
               </Link>
               <Link href="/powiadomienia" onClick={() => setMenuOpen(false)}>
                 <Bell size={16} /> Powiadomienia
