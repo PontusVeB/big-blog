@@ -1,5 +1,5 @@
 "use client";
-// Kliencka część navbara — logo + menu + dzwonek powiadomień + dropdown usera.
+// Kliencka część navbara — logo + menu + wyszukiwarka + dzwonek + dropdown usera.
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -9,6 +9,7 @@ import {
   User, UserCog, Shield, LogOut, FilePen,
 } from "lucide-react";
 import { logout } from "@/lib/auth/actions";
+import SearchBar from "@/components/search/SearchBar";
 
 export type NavbarProfile = {
   nickname: string | null;
@@ -71,6 +72,11 @@ export default function NavbarClient({ profile, unreadCount }: Props) {
       </div>
 
       <div className="navbar-right">
+        {/* Wyszukiwarka z podpowiedziami — chowana na mobile (jest w menu) */}
+        <div className="navbar-search">
+          <SearchBar variant="compact" />
+        </div>
+
         {profile ? (
           <>
             <Link href="/posty/nowy" className="btn btn-primary navbar-new-post">
@@ -167,6 +173,12 @@ export default function NavbarClient({ profile, unreadCount }: Props) {
 
       {menuOpen && (
         <div className="mobile-menu">
+          {/* Wyszukiwarka w menu mobilnym — bez dropdownu podpowiedzi
+              (działa na Enter; dropdown w hamburgerze byłby ciasny). */}
+          <div className="mobile-search">
+            <SearchBar variant="compact" withSuggestions={false} />
+          </div>
+
           {links.map((link) => (
             <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}>
               {link.label}

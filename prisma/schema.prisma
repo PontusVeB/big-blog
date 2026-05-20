@@ -59,6 +59,12 @@ model Post {
   updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
   editedAt      DateTime? @db.Timestamptz(3) @map("edited_at")
 
+  // Kolumna pełnotekstowa do wyszukiwarki (typ Postgres `tsvector`).
+  // Prisma nie obsługuje tsvector natywnie → typ Unsupported (Prisma jej
+  // nie czyta ani nie zapisuje). Wartość utrzymuje trigger SQL
+  // `trg_posts_search_vector`. Indeks GIN tworzony jest w SQL.sql.
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
   likes    PostLike[]
   postTags PostTag[]
 

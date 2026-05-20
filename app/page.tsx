@@ -1,8 +1,9 @@
-// Strona główna — lista postów z lajkami, licznikiem komentarzy i filtrem po tagach.
-// Faza 11: rebrand na BigBlog (blog społecznościowy) + pływający przycisk "Nowy post".
+// Strona główna — lista postów + filtr po tagach.
+// Faza 13: hero i kafelki "Rozmowy/Zdjęcia/Społeczność" przeniesione na /o-blogu.
+// Tu zostają tylko: filtr po tagach (wyśrodkowany) + posty + FAB.
 
 import Link from "next/link";
-import { Feather, MessageCircle, ImagePlus, Users, PenLine } from "lucide-react";
+import { PenLine } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/post/PostCard";
 import TagsFilter from "@/components/tags/TagsFilter";
@@ -122,21 +123,10 @@ export default async function HomePage({
 
   return (
     <>
-      <section className="hero hero-compact">
-        <span className="badge badge-warm">
-          <Feather size={14} /> Blog społecznościowy
-        </span>
-        <h1>BigBlog</h1>
-        <p>
-          Wspólna przestrzeń dla autorów i czytelników. Publikuj posty, dziel
-          się zdjęciami, komentuj i śledź najciekawsze treści społeczności —
-          wszystko w jednym miejscu.
-        </p>
-      </section>
+      <section className="posts-feed posts-feed-top">
+        {/* Filtr po tagach — wyśrodkowany razem z listą postów */}
+        <TagsFilter tags={allTags} activeSlug={activeSlug} />
 
-      <TagsFilter tags={allTags} activeSlug={activeSlug} />
-
-      <section className="posts-feed">
         <div className="feed-header">
           <h2>
             {activeTag
@@ -178,28 +168,6 @@ export default async function HomePage({
           </div>
         )}
       </section>
-
-      {!activeTag && (
-        <section className="features">
-          <div className="features-grid">
-            <div className="feature-card">
-              <div className="feature-icon"><MessageCircle size={24} /></div>
-              <h4>Rozmowy</h4>
-              <p>Pytaj, dyskutuj i wymieniaj się pomysłami z innymi autorami.</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon"><ImagePlus size={24} /></div>
-              <h4>Zdjęcia</h4>
-              <p>Dodawaj zdjęcia do postów i pokazuj dokładnie to, co chcesz przekazać.</p>
-            </div>
-            <div className="feature-card">
-              <div className="feature-icon"><Users size={24} /></div>
-              <h4>Społeczność</h4>
-              <p>Poznawaj ludzi o podobnych zainteresowaniach i buduj swoją publiczność.</p>
-            </div>
-          </div>
-        </section>
-      )}
 
       {/* Pływający przycisk — tylko dla zalogowanych, tylko na stronie głównej */}
       {user && <NewPostFab />}
