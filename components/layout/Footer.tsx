@@ -7,7 +7,7 @@ export default function Footer() {
 
   return (
     <footer className="footer">
-      <div className="brand-mini">Tollerkowo</div>
+      <div className="brand-mini">BigBlog</div>
       <div className="footer-line">
         Stworzony z <Heart size={14} className="footer-heart" /> przez Piotra &amp; Kobe • {year}
       </div>

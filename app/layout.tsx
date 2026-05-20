@@ -21,11 +21,11 @@ const playfair = Playfair_Display({
 
 export const metadata: Metadata = {
   title: {
-    default: "Tollerkowo",
-    template: "%s • Tollerkowo",
+    default: "BigBlog",
+    template: "%s • BigBlog",
   },
   description:
-    "Społeczność miłośników Tollerów (Nova Scotia Duck Tolling Retriever). Dziel się przygodami, zdjęciami i radami z innymi opiekunami rasy.",
+    "BigBlog — wspólna przestrzeń dla autorów i czytelników. Publikuj posty, dziel się zdjęciami, komentuj i dołącz do społeczności.",
   icons: {
     icon: "/logo.png",
   },
@@ -41,7 +41,7 @@ export default function RootLayout({
         <main>{children}</main>
         <Footer />
 
-        {/* Toaster — kontener wyświetlający wszystkie toasty (lewy dolny róg) */}
+        {/* Toaster — kontener wyświetlający wszystkie toasty (prawy dolny róg) */}
         <Toaster
           theme="dark"
           position="bottom-right"

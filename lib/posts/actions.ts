@@ -1,7 +1,5 @@
 "use server";
-// Server Actions dla postów: tworzenie, edycja, usuwanie, lajkowanie.
-// Po sukcesie przekierowujemy z parametrem ?flash=X żeby globalny ToastFlash
-// pokazał potwierdzenie na stronie docelowej.
+// Server Actions dla postów: tworzenie, edycja, usuwanie, lajkowanie + obsługa tagów.
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -19,6 +17,20 @@ function validatePostFields(title: string, content: string): string | null {
   return null;
 }
 
+// Parsuje JSON string z formData (array tag IDs). Bezpiecznie zwraca [] w razie błędu.
+function parseTagIds(raw: FormDataEntryValue | null): string[] {
+  if (!raw || typeof raw !== "string") return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every((v) => typeof v === "string")) {
+      return parsed;
+    }
+  } catch {
+    // ignore
+  }
+  return [];
+}
+
 // ════════════════════════════════════════════════════════════════
 //  CREATE
 // ════════════════════════════════════════════════════════════════
@@ -30,6 +42,7 @@ export async function createPost(
   const content = (formData.get("content") as string)?.trim();
   const imageUrlRaw = (formData.get("imageUrl") as string)?.trim();
   const imageUrl = imageUrlRaw && imageUrlRaw.length > 0 ? imageUrlRaw : null;
+  const tagIds = parseTagIds(formData.get("tags"));
 
   const validationError = validatePostFields(title, content);
   if (validationError) return { error: validationError };
@@ -48,6 +61,15 @@ export async function createPost(
     return { error: error?.message ?? "Nie udało się zapisać posta." };
   }
 
+  // Podpinamy tagi (jeśli wybrane). RLS post_tags pozwala bo jesteśmy autorem posta.
+  if (tagIds.length > 0) {
+    const tagInserts = tagIds.map((tagId) => ({
+      post_id: post.id,
+      tag_id: tagId,
+    }));
+    await supabase.from("post_tags").insert(tagInserts);
+  }
+
   revalidatePath("/");
   redirect(`/posty/${post.id}?flash=post_created`);
 }
@@ -64,6 +86,7 @@ export async function updatePost(
   const content = (formData.get("content") as string)?.trim();
   const imageUrlRaw = (formData.get("imageUrl") as string)?.trim();
   const imageUrl = imageUrlRaw && imageUrlRaw.length > 0 ? imageUrlRaw : null;
+  const tagIds = parseTagIds(formData.get("tags"));
 
   if (!id) return { error: "Brak ID posta." };
   const validationError = validatePostFields(title, content);
@@ -99,6 +122,13 @@ export async function updatePost(
     .eq("id", id);
 
   if (updateErr) return { error: updateErr.message };
+
+  // Aktualizacja tagów — wipe & reinsert. Proste i niezawodne.
+  await supabase.from("post_tags").delete().eq("post_id", id);
+  if (tagIds.length > 0) {
+    const tagInserts = tagIds.map((tagId) => ({ post_id: id, tag_id: tagId }));
+    await supabase.from("post_tags").insert(tagInserts);
+  }
 
   if (existing.image_url && existing.image_url !== imageUrl) {
     const path = extractStoragePath(existing.image_url, "post-images");
@@ -159,16 +189,14 @@ export async function deletePost(
 }
 
 // ════════════════════════════════════════════════════════════════
-//  TOGGLE LIKE — z blokadą self-like (bez flash, bo używamy optimistic UI)
+//  TOGGLE LIKE
 // ════════════════════════════════════════════════════════════════
 export async function togglePostLike(
   postId: string
 ): Promise<{ liked: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { liked: false, error: "Musisz być zalogowany aby lajkować." };
-  }
+  if (!user) return { liked: false, error: "Musisz być zalogowany aby lajkować." };
 
   const { data: post } = await supabase
     .from("posts")
@@ -176,9 +204,7 @@ export async function togglePostLike(
     .eq("id", postId)
     .single<{ author_id: string }>();
 
-  if (!post) {
-    return { liked: false, error: "Post nie istnieje." };
-  }
+  if (!post) return { liked: false, error: "Post nie istnieje." };
   if (post.author_id === user.id) {
     return { liked: false, error: "Nie możesz polubić swojego posta." };
   }

@@ -1,5 +1,6 @@
 "use client";
 // Uniwersalny formularz posta — create + edit.
+// Faza 10: dodane pole TagsField.
 
 import { useState, useRef } from "react";
 import { useActionState } from "react";
@@ -8,7 +9,9 @@ import dynamic from "next/dynamic";
 import { Smile } from "lucide-react";
 import type { EmojiClickData } from "emoji-picker-react";
 import { createPost, updatePost, type PostFormState } from "@/lib/posts/actions";
+import type { TagInfo } from "@/lib/tags/types";
 import ImageDropzone from "./ImageDropzone";
+import TagsField from "./TagsField";
 
 const EmojiPicker = dynamic(() => import("emoji-picker-react"), {
   ssr: false,
@@ -22,7 +25,10 @@ type PostFormProps = {
     title: string;
     content: string;
     imageUrl: string | null;
+    tags?: TagInfo[];
   };
+  /** Czy zalogowany user może tworzyć nowe tagi (ADMIN/MASTER). */
+  canCreateTags: boolean;
 };
 
 function SubmitButton({ mode }: { mode: "create" | "edit" }) {
@@ -42,7 +48,7 @@ function SubmitButton({ mode }: { mode: "create" | "edit" }) {
   );
 }
 
-export default function PostForm({ mode, initial }: PostFormProps) {
+export default function PostForm({ mode, initial, canCreateTags }: PostFormProps) {
   const action = mode === "edit" ? updatePost : createPost;
   const [state, formAction] = useActionState<PostFormState, FormData>(action, null);
 
@@ -97,6 +103,14 @@ export default function PostForm({ mode, initial }: PostFormProps) {
           placeholder="Krótki, chwytliwy tytuł"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
+        />
+      </div>
+
+      <div className="field">
+        <label>Tagi (opcjonalne)</label>
+        <TagsField
+          initialTags={initial?.tags ?? []}
+          canCreateTags={canCreateTags}
         />
       </div>
 

@@ -1,5 +1,7 @@
 // Typy współdzielone dla modułu postów.
 
+import type { TagInfo } from "@/lib/tags/types";
+
 export type PostAuthor = {
   id: string;
   nickname: string | null;
@@ -18,9 +20,10 @@ export type PostWithAuthor = {
   likes_count: number;
   comments_count: number;
   author: PostAuthor | null;
+  /** Tagi przypisane do posta — uzupełniane w warstwie aplikacji po fetch */
+  tags?: TagInfo[];
 };
 
-// Wzbogacenie postem o flagę "czy aktualnie zalogowany user polubił".
 export type PostWithLikeState = PostWithAuthor & {
   liked_by_me: boolean;
 };

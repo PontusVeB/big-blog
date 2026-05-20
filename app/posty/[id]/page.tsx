@@ -1,3 +1,5 @@
+// Strona szczegółów posta. Faza 10: dodane wyświetlanie tagów pod meta.
+
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -7,9 +9,11 @@ import { canEditPost, canDeletePost } from "@/lib/posts/permissions";
 import type { PostWithAuthor } from "@/lib/posts/types";
 import type { CommentRow } from "@/lib/comments/types";
 import type { Role } from "@/lib/auth/permissions";
+import type { TagInfo } from "@/lib/tags/types";
 import RichContent from "@/components/post/RichContent";
 import PostActions from "@/components/post/PostActions";
 import PostLikesSection from "@/components/post/PostLikesSection";
+import PostTags from "@/components/post/PostTags";
 import CommentTree from "@/components/comment/CommentTree";
 
 export async function generateMetadata({
@@ -55,6 +59,25 @@ export default async function PostPage({
   ]);
 
   if (error || !post) notFound();
+
+  // Tagi posta
+  const { data: tagRows } = await supabase
+    .from("post_tags")
+    .select("tag:tags(id, name, slug, color)")
+    .eq("post_id", id);
+
+  const tags: TagInfo[] = (tagRows ?? [])
+    .map((r) => {
+      const t = Array.isArray(r.tag) ? r.tag[0] : r.tag;
+      if (!t) return null;
+      return {
+        id: t.id as string,
+        name: t.name as string,
+        slug: t.slug as string,
+        color: (t.color as string | null) ?? null,
+      };
+    })
+    .filter((t): t is TagInfo => t !== null);
 
   let viewerProfile: { id: string; role: Role; permissions: string[] | null } | null = null;
   let likedByMe = false;
@@ -123,7 +146,6 @@ export default async function PostPage({
         <div className="hero-overlay">
           <h1>{post.title}</h1>
           <div className="meta">
-            {/* Autor — link do profilu */}
             <Link
               href={`/profil/${post.author_id}`}
               className="author author-link-hero"
@@ -150,6 +172,13 @@ export default async function PostPage({
           </div>
         </div>
       </div>
+
+      {/* Tagi posta — klikalne pille prowadzące do /?tag=slug */}
+      {tags.length > 0 && (
+        <div className="single-post-tags">
+          <PostTags tags={tags} variant="block" />
+        </div>
+      )}
 
       <PostActions postId={post.id} canEdit={canEdit} canDelete={canDelete} />
 

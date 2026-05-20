@@ -30,9 +30,9 @@ model Profile {
   postLikes             PostLike[]
   comments              Comment[]
   commentLikes          CommentLike[]
-  // Powiadomienia są dwustronne — user jest "recipientem" lub "actorem"
   notificationsReceived Notification[] @relation("recipientNotifications")
   notificationsCreated  Notification[] @relation("actorNotifications")
+  tagsCreated           Tag[]
 
   @@map("profiles")
 }
@@ -59,23 +59,20 @@ model Post {
   updatedAt     DateTime  @default(now()) @updatedAt @db.Timestamptz(3) @map("updated_at")
   editedAt      DateTime? @db.Timestamptz(3) @map("edited_at")
 
-  likes PostLike[]
+  likes    PostLike[]
+  postTags PostTag[]
 
   @@index([createdAt(sort: Desc)])
   @@index([authorId])
   @@map("posts")
 }
 
-// ════════════════════════════════════════════════════════════════
-//  PostLike
-// ════════════════════════════════════════════════════════════════
 model PostLike {
   postId    String   @db.Uuid @map("post_id")
   userId    String   @db.Uuid @map("user_id")
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
-
   @@id([postId, userId])
   @@index([userId])
   @@map("post_likes")
@@ -99,9 +96,7 @@ model Comment {
   likesCount  Int               @default(0) @map("likes_count")
   createdAt   DateTime          @default(now()) @db.Timestamptz(3) @map("created_at")
   editedAt    DateTime?         @db.Timestamptz(3) @map("edited_at")
-
-  likes CommentLike[]
-
+  likes       CommentLike[]
   @@index([targetType, targetId])
   @@index([parentId])
   @@index([authorId])
@@ -112,32 +107,20 @@ enum CommentTargetType {
   POST
 }
 
-// ════════════════════════════════════════════════════════════════
-//  CommentLike
-// ════════════════════════════════════════════════════════════════
 model CommentLike {
   commentId String   @db.Uuid @map("comment_id")
   userId    String   @db.Uuid @map("user_id")
   comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
   user      Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
-
   @@id([commentId, userId])
   @@index([userId])
   @@map("comment_likes")
 }
 
 // ════════════════════════════════════════════════════════════════
-//  Notification — system powiadomień
+//  Notification
 // ════════════════════════════════════════════════════════════════
-// recipient — komu się wyświetli powiadomienie
-// actor     — kto wykonał akcję (może być null gdy system)
-// type      — rodzaj zdarzenia (COMMENT_ON_POST, REPLY_TO_COMMENT, ...)
-// source    — co jest źródłem (polimorficzne: 'comment' + id komentarza)
-// is_read   — czy user już je przeczytał
-//
-// Tworzone automatycznie przez triggery SQL (create_comment_notification).
-// User nigdy nie wstawia bezpośrednio (brak polityki RLS INSERT).
 model Notification {
   id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   recipientId String           @db.Uuid @map("recipient_id")
@@ -149,14 +132,49 @@ model Notification {
   sourceId    String?          @db.Uuid @map("source_id")
   isRead      Boolean          @default(false) @map("is_read")
   createdAt   DateTime         @default(now()) @db.Timestamptz(3) @map("created_at")
-
   @@index([recipientId, isRead])
   @@index([recipientId, createdAt(sort: Desc)])
   @@map("notifications")
 }
 
 enum NotificationType {
-  COMMENT_ON_POST      // ktoś skomentował Twój post
-  REPLY_TO_COMMENT     // ktoś odpowiedział na Twój komentarz
-  // Future: LIKE_ON_POST, LIKE_ON_COMMENT, MENTION, ADMIN_ACTION
+  COMMENT_ON_POST
+  REPLY_TO_COMMENT
+}
+
+// ════════════════════════════════════════════════════════════════
+//  Tag — tematyczna etykieta postów
+// ════════════════════════════════════════════════════════════════
+// Tworzony przez userów z uprawnieniem `tags.create` (domyślnie ADMIN, MASTER).
+// Slug to URL-friendly wersja name (np. "Sport i aktywność" → "sport-i-aktywnosc").
+// Color do wizualnego rozróżnienia (hex string, np. "#069494").
+model Tag {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String   @unique @db.VarChar(50)
+  slug        String   @unique @db.VarChar(60)
+  color       String?  @db.VarChar(20)
+  description String?
+  createdById String?  @db.Uuid @map("created_by_id")
+  createdBy   Profile? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt   DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+
+  postTags PostTag[]
+
+  @@index([slug])
+  @@map("tags")
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PostTag — junction many-to-many (post ↔ tag)
+// ════════════════════════════════════════════════════════════════
+model PostTag {
+  postId    String   @db.Uuid @map("post_id")
+  tagId     String   @db.Uuid @map("tag_id")
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag       Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz(3) @map("created_at")
+
+  @@id([postId, tagId])
+  @@index([tagId])
+  @@map("post_tags")
 }

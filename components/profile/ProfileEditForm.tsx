@@ -143,7 +143,7 @@ export default function ProfileEditForm({ initial }: Props) {
           maxLength={500}
           rows={4}
           className="input"
-          placeholder="Krótko o sobie i swoim Tollerze (opcjonalnie)"
+          placeholder="Krótko o sobie — kim jesteś, o czym piszesz (opcjonalnie)"
           value={bio}
           onChange={(e) => setBio(e.target.value)}
         />

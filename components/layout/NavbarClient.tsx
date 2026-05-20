@@ -51,10 +51,10 @@ export default function NavbarClient({ profile, unreadCount }: Props) {
 
   return (
     <nav className="navbar">
-      <Link href="/" className="brand" aria-label="Tollerkowo — strona główna">
+      <Link href="/" className="brand" aria-label="BigBlog — strona główna">
         <Image
           src="/logo.png"
-          alt="Tollerkowo"
+          alt="BigBlog"
           width={88}
           height={88}
           priority

@@ -1,19 +1,19 @@
-// Karta posta na liście. Wewnątrz są TRZY osobne Linki:
-//   - image-link    → /posty/[id]   (kliknięcie w zdjęcie)
-//   - title-link    → /posty/[id]   (kliknięcie w tytuł)
-//   - author-link   → /profil/[id]  (kliknięcie w awatar lub nick autora)
-//   - body-link     → /posty/[id]   (kliknięcie w treść / "Czytaj dalej")
-// Plus footer z LikeButton i licznikiem komentarzy (osobne Linki).
+// Karta posta na liście. Faza 10: dodane tagi pod treścią (jeśli są).
 //
-// Cała ta gimnastyka — żeby autor zawsze prowadził do profilu, a reszta do posta.
-// Nie ma nested <a> (niepoprawny HTML), bo image-overlay jest siblingiem image-linka
-// (pozycjonowany absolutnie nad nim), nie zawiera się w nim.
+// Struktura linków (bez nested <a>):
+//   - image-link    → /posty/[id]
+//   - title-link    → /posty/[id]
+//   - author-link   → /profil/[id]
+//   - body-link     → /posty/[id]
+//   - tag-pill      → /?tag=slug  (kliknięcie filtruje feed po tagu)
+//   - LikeButton, comments-stat — w footerze
 
 import Link from "next/link";
 import { ArrowRight, MessageCircle } from "lucide-react";
 import type { PostWithLikeState } from "@/lib/posts/types";
 import { formatRelativeDate, truncateContent, getInitial } from "@/lib/posts/utils";
 import LikeButton from "./LikeButton";
+import PostTags from "./PostTags";
 
 const GRADIENTS = ["img-grad-1", "img-grad-2", "img-grad-3", "img-grad-4", "img-grad-5"];
 function pickGradient(id: string): string {
@@ -32,11 +32,11 @@ export default function PostCard({ post, currentUserId }: Props) {
     post.author?.nickname ?? post.author?.email?.split("@")[0] ?? "anonim";
   const initial = getInitial(post.author?.nickname ?? post.author?.email);
   const isOwnPost = !!currentUserId && currentUserId === post.author_id;
+  const hasTags = post.tags && post.tags.length > 0;
 
   return (
     <article className="post-card">
       <div className="image-wrap">
-        {/* Zdjęcie (lub gradient) jako klikalny Link do posta */}
         <Link
           href={`/posty/${post.id}`}
           className="image-link"
@@ -49,8 +49,6 @@ export default function PostCard({ post, currentUserId }: Props) {
           )}
         </Link>
 
-        {/* Overlay z gradientem i napisami — SIBLING image-linka, nie nested.
-            CSS pointer-events: none na tle, auto na linkach wewnątrz. */}
         <div className="image-overlay">
           <Link href={`/posty/${post.id}`} className="title-link">
             <h3 className="title">{post.title}</h3>
@@ -73,6 +71,13 @@ export default function PostCard({ post, currentUserId }: Props) {
           </div>
         </div>
       </div>
+
+      {/* Tagi — między hero a treścią. NIE w body-linku, żeby zachować klikalność tagów. */}
+      {hasTags && (
+        <div className="post-card-tags">
+          <PostTags tags={post.tags!} variant="inline" />
+        </div>
+      )}
 
       <Link href={`/posty/${post.id}`} className="body-link">
         <div className="body">

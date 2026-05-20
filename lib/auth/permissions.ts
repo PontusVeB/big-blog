@@ -2,14 +2,13 @@
 
 export type Role = "MASTER" | "ADMIN" | "USER";
 
-// Domyślne uprawnienia per rola.
-// MASTER ma "*" — wildcard (hasPermission zwraca true dla wszystkiego).
 export const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
   MASTER: ["*"],
   ADMIN: [
-    "posts.delete",      // moderacja postów
-    "comments.delete",   // moderacja komentarzy
-    "users.view",        // widoczność panelu użytkowników
+    "posts.delete",
+    "comments.delete",
+    "users.view",
+    "tags.create",   // admin tworzy tagi domyślnie
   ],
   USER: [
     "posts.create",
@@ -19,13 +18,12 @@ export const ROLE_PERMISSIONS: Record<Role, readonly string[]> = {
   ],
 } as const;
 
-// Lista uprawnień jakie MASTER może nadawać "ekstra" konkretnemu userowi
-// przez panel admina (poza domyślnymi z roli). USER z "posts.delete" może
-// moderować posty bez bycia ADMINEM.
 export const AVAILABLE_PERMISSIONS = [
   "posts.delete",
   "comments.delete",
   "users.view",
+  "tags.create",
+  "tags.delete",
 ] as const;
 
 export type AvailablePermission = typeof AVAILABLE_PERMISSIONS[number];
@@ -34,12 +32,16 @@ export const PERMISSION_LABELS: Record<AvailablePermission, string> = {
   "posts.delete": "Usuwanie postów",
   "comments.delete": "Usuwanie komentarzy",
   "users.view": "Dostęp do panelu użytkowników",
+  "tags.create": "Tworzenie tagów",
+  "tags.delete": "Usuwanie tagów",
 };
 
 export const PERMISSION_DESCRIPTIONS: Record<AvailablePermission, string> = {
   "posts.delete": "Może usuwać posty innych użytkowników (moderacja).",
   "comments.delete": "Może usuwać komentarze innych użytkowników (moderacja).",
   "users.view": "Może wejść w panel /admin i podglądać użytkowników.",
+  "tags.create": "Może tworzyć nowe tagi tematyczne (dla wszystkich postów).",
+  "tags.delete": "Może usuwać istniejące tagi z bazy.",
 };
 
 export type ProfileForPermissions = {
@@ -47,8 +49,6 @@ export type ProfileForPermissions = {
   permissions?: string[] | null;
 };
 
-// Sprawdza czy profil ma konkretne uprawnienie.
-// MASTER zawsze TAK; inni — z roli lub z permissions[].
 export function hasPermission(
   profile: ProfileForPermissions | null | undefined,
   permission: string

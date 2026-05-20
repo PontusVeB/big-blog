@@ -52,7 +52,7 @@ export async function generateMetadata({
   const displayName = data.nickname ?? data.email.split("@")[0];
   return {
     title: displayName,
-    description: `Profil użytkownika ${displayName} na Tollerkowie`,
+    description: `Profil użytkownika ${displayName} na BigBlog`,
   };
 }
 

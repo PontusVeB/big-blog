@@ -28,7 +28,7 @@ const FLASHES: Record<string, FlashConfig> = {
   profile_saved:   { type: "success", text: "Profil zaktualizowany" },
   logged_in:       { type: "success", text: "Zalogowano" },
   logged_out:      { type: "info",    text: "Wylogowano" },
-  registered:      { type: "success", text: "Witaj w Tollerkowie! 🐕", description: "Konto utworzone, możesz pisać posty." },
+  registered:      { type: "success", text: "Witaj w BigBlog! 🎉", description: "Konto utworzone, możesz pisać posty." },
 };
 
 export default function ToastFlash() {
