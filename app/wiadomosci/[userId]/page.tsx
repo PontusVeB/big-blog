@@ -110,7 +110,10 @@ export default async function ThreadPage({
         <BlockButton targetId={otherUser.id} initiallyBlocked={iBlockedThem} />
       </header>
 
+      {/* key = ID rozmówcy → zmiana wątku to świeży mount (czysty stan,
+          świeża subskrypcja Realtime, pusty kompozytor). */}
       <MessageThread
+        key={otherUser.id}
         initialMessages={messages}
         otherUser={otherUser}
         currentUserId={user.id}

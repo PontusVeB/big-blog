@@ -1,14 +1,21 @@
 "use client";
 // Kliencka część navbara — logo + menu + wyszukiwarka + wiadomości + dzwonek + dropdown usera.
+//
+// Licznik koperty aktualizuje się NA ŻYWO (Supabase Realtime).
+// Faza 16: przed subskrypcją pobieramy sesję i ustawiamy token Realtime —
+// inaczej po F5 kanał subskrybuje się jako "anon" i RLS blokuje zdarzenia.
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import {
   Menu, X, LogIn, UserPlus, Plus, Bell, Mail,
   User, UserCog, Shield, LogOut, FilePen,
 } from "lucide-react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { logout } from "@/lib/auth/actions";
+import { createClient } from "@/lib/supabase/client";
 import SearchBar from "@/components/search/SearchBar";
 
 export type NavbarProfile = {
@@ -29,18 +36,77 @@ type Props = {
   profile: NavbarProfile;
   unreadCount: number;
   unreadMessages: number;
+  userId: string | null;
 };
 
 export default function NavbarClient({
   profile,
   unreadCount,
   unreadMessages,
+  userId,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
+  // Licznik wiadomości — start z wartości serwerowej, podbijany przez Realtime.
+  const [liveMessages, setLiveMessages] = useState(unreadMessages);
+
+  // Ścieżka w ref — żeby callback Realtime widział aktualną wartość.
+  const pathname = usePathname();
+  const pathnameRef = useRef(pathname);
+  pathnameRef.current = pathname;
+
   const initial = (profile?.nickname || profile?.email || "?")[0].toUpperCase();
+
+  // Resync licznika z serwerem po każdym przerenderowaniu navbara
+  // (np. po router.refresh() przy wejściu w wątek — licznik spada).
+  useEffect(() => {
+    setLiveMessages(unreadMessages);
+  }, [unreadMessages]);
+
+  // Subskrypcja Realtime — nowa wiadomość do mnie podbija licznik.
+  useEffect(() => {
+    if (!userId) return;
+    const supabase = createClient();
+    let channel: RealtimeChannel | null = null;
+    let active = true;
+
+    (async () => {
+      // Po F5 najpierw pobieramy sesję i ustawiamy token Realtime,
+      // dopiero potem subskrybujemy (inaczej RLS blokuje zdarzenia).
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
+
+      channel = supabase
+        .channel(`navbar-messages-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `recipient_id=eq.${userId}`,
+          },
+          (payload) => {
+            const senderId = (payload.new as { sender_id: string }).sender_id;
+            // Jeśli właśnie oglądam wątek z tym nadawcą — wiadomość zaraz
+            // zostanie oznaczona jako przeczytana, więc nie podbijamy licznika.
+            if (pathnameRef.current === `/wiadomosci/${senderId}`) return;
+            setLiveMessages((n) => n + 1);
+          }
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      active = false;
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [userId]);
 
   useEffect(() => {
     if (!userMenuOpen) return;
@@ -88,20 +154,20 @@ export default function NavbarClient({
               <Plus size={16} /> Nowy post
             </Link>
 
-            {/* Wiadomości — koperta z licznikiem nieprzeczytanych */}
+            {/* Wiadomości — koperta z licznikiem nieprzeczytanych (live) */}
             <Link
               href="/wiadomosci"
               className="navbar-bell"
               aria-label={
-                unreadMessages > 0
-                  ? `Wiadomości (${unreadMessages} nieprzeczytanych)`
+                liveMessages > 0
+                  ? `Wiadomości (${liveMessages} nieprzeczytanych)`
                   : "Wiadomości"
               }
             >
               <Mail size={20} />
-              {unreadMessages > 0 && (
+              {liveMessages > 0 && (
                 <span className="navbar-bell-badge">
-                  {unreadMessages > 99 ? "99+" : unreadMessages}
+                  {liveMessages > 99 ? "99+" : liveMessages}
                 </span>
               )}
             </Link>
@@ -154,8 +220,8 @@ export default function NavbarClient({
                   </Link>
                   <Link href="/wiadomosci" onClick={() => setUserMenuOpen(false)}>
                     <Mail size={16} /> Wiadomości
-                    {unreadMessages > 0 && (
-                      <span className="user-menu-badge">{unreadMessages}</span>
+                    {liveMessages > 0 && (
+                      <span className="user-menu-badge">{liveMessages}</span>
                     )}
                   </Link>
                   <Link href="/powiadomienia" onClick={() => setUserMenuOpen(false)}>
@@ -219,8 +285,8 @@ export default function NavbarClient({
               </Link>
               <Link href="/wiadomosci" onClick={() => setMenuOpen(false)}>
                 <Mail size={16} /> Wiadomości
-                {unreadMessages > 0 && (
-                  <span className="user-menu-badge">{unreadMessages}</span>
+                {liveMessages > 0 && (
+                  <span className="user-menu-badge">{liveMessages}</span>
                 )}
               </Link>
               <Link href="/powiadomienia" onClick={() => setMenuOpen(false)}>

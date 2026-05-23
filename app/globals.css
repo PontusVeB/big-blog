@@ -2399,3 +2399,44 @@ img { max-width: 100%; display: block; }
     max-width: 85%;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Faza 16 — poprawki: zdjęcie hero posta + tło dropdownu tagów.
+   ════════════════════════════════════════════════════════════════ */
+
+/* ────────────────────────────────────────────────────────────────
+   STRONA POJEDYNCZEGO POSTA — wyśrodkowana kolumna
+   ──────────────────────────────────────────────────────────────── */
+/* Wcześniej `.single-post` był pełnej szerokości okna — na szerokim
+   ekranie zdjęcie hero rozjeżdżało się i wyglądało "przyklejone do lewej".
+   Teraz to wyśrodkowana kolumna ~880 px (na mobile pełna szerokość). */
+.single-post {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+.single-post .hero {
+  border-radius: var(--radius-md);
+}
+
+/* Zdjęcie/placeholder ZAWSZE wypełnia cały kadr 16:9 (object-fit: cover).
+   To naprawia "przyklejone do lewej" — obraz wypełnia kontener w 100%. */
+.single-post .post-hero-image,
+.single-post .hero .img-placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* ────────────────────────────────────────────────────────────────
+   DROPDOWN TAGÓW — solidne, nieprzezroczyste tło
+   ──────────────────────────────────────────────────────────────── */
+/* Faza 10 użyła zmiennej `--color-bg-elev`, której nie ma w theme.css →
+   tło bywało przezroczyste i tekst formularza prześwitywał.
+   `--color-surface` jest zdefiniowane i nieprzezroczyste. */
+.tags-dropdown {
+  background: var(--color-surface);
+  z-index: 60;
+}

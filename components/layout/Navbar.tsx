@@ -1,5 +1,6 @@
 // Navbar — Server Component. Pobiera profil, liczbę nieprzeczytanych
 // powiadomień oraz liczbę nieprzeczytanych wiadomości.
+// Przekazuje też userId — NavbarClient używa go do subskrypcji Realtime.
 
 import { createClient } from "@/lib/supabase/server";
 import NavbarClient, { type NavbarProfile } from "./NavbarClient";
@@ -45,6 +46,7 @@ export default async function Navbar() {
       profile={profile}
       unreadCount={unreadCount}
       unreadMessages={unreadMessages}
+      userId={user?.id ?? null}
     />
   );
 }

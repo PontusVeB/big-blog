@@ -6,16 +6,19 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { canonicalPair } from "./utils";
+import type { MessageRow } from "./types";
 
 const MAX_MESSAGE_LENGTH = 5000;
 
 // ════════════════════════════════════════════════════════════════
 //  WYSYŁANIE WIADOMOŚCI
 // ════════════════════════════════════════════════════════════════
+// Zwraca utworzoną wiadomość — wątek dopisuje ją od razu do listy
+// (a Realtime i tak dostarczy ją drugiej stronie).
 export async function sendMessage(
   recipientId: string,
   rawContent: string
-): Promise<{ error?: string; conversationId?: string }> {
+): Promise<{ error?: string; message?: MessageRow }> {
   const content = rawContent.trim();
 
   // Walidacja treści
@@ -88,18 +91,27 @@ export async function sendMessage(
     }
   }
 
-  // Zapis wiadomości
-  const { error: msgErr } = await supabase.from("messages").insert({
-    conversation_id: conversationId,
-    sender_id: user.id,
-    recipient_id: recipientId,
-    content,
-  });
-  if (msgErr) return { error: msgErr.message };
+  // Zapis wiadomości — od razu zwracamy wstawiony wiersz
+  const { data: message, error: msgErr } = await supabase
+    .from("messages")
+    .insert({
+      conversation_id: conversationId,
+      sender_id: user.id,
+      recipient_id: recipientId,
+      content,
+    })
+    .select(
+      "id, conversation_id, sender_id, recipient_id, content, read_at, created_at"
+    )
+    .single<MessageRow>();
+
+  if (msgErr || !message) {
+    return { error: msgErr?.message ?? "Nie udało się wysłać wiadomości." };
+  }
 
   revalidatePath(`/wiadomosci/${recipientId}`);
   revalidatePath("/wiadomosci");
-  return { conversationId };
+  return { message };
 }
 
 // ════════════════════════════════════════════════════════════════

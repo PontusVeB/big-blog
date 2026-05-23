@@ -1,9 +1,11 @@
 "use client";
 // Wątek rozmowy — lista wiadomości (bąbelki) + pole do pisania z emotkami.
 //
-// Bez realtime (to Faza 15): po wysłaniu wołamy router.refresh(), co odświeża
-// serwerowy komponent strony i pobiera nową wiadomość. Druga osoba zobaczy ją
-// dopiero po odświeżeniu strony.
+// Realtime (Faza 15 + poprawka Fazy 16):
+//  - lokalny stan `messages` (seed z initialMessages),
+//  - subskrypcja Supabase Realtime na INSERT do tabeli messages,
+//  - PRZED subskrypcją pobieramy sesję i ustawiamy token Realtime —
+//    inaczej po F5 kanał subskrybuje się jako "anon" i RLS blokuje zdarzenia.
 
 import { Fragment, useState, useRef, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -11,6 +13,8 @@ import dynamic from "next/dynamic";
 import { Smile, Send } from "lucide-react";
 import { toast } from "sonner";
 import type { EmojiClickData } from "emoji-picker-react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
 import { sendMessage, markConversationRead } from "@/lib/messages/actions";
 import { formatMessageTime, formatMessageDay } from "@/lib/messages/utils";
 import type { MessageRow, ChatUser } from "@/lib/messages/types";
@@ -36,6 +40,7 @@ export default function MessageThread({
   iBlockedThem,
 }: Props) {
   const router = useRouter();
+  const [messages, setMessages] = useState<MessageRow[]>(initialMessages);
   const [content, setContent] = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -44,17 +49,70 @@ export default function MessageThread({
 
   const otherName = otherUser.nickname ?? otherUser.email.split("@")[0];
 
+  // Dopisuje wiadomość do listy, pomijając duplikaty (po id).
+  function appendMessage(msg: MessageRow) {
+    setMessages((prev) =>
+      prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]
+    );
+  }
+
   // Oznaczamy rozmowę jako przeczytaną po wejściu w wątek.
+  // router.refresh() odświeża też navbar (licznik koperty spada).
   useEffect(() => {
     if (!conversationId) return;
     markConversationRead(conversationId).then(() => router.refresh());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [conversationId]);
 
-  // Przewijamy na dół przy każdej zmianie liczby wiadomości.
+  // ── Subskrypcja Realtime — nowe wiadomości DO mnie ──────────────
+  useEffect(() => {
+    const supabase = createClient();
+    let channel: RealtimeChannel | null = null;
+    let active = true;
+
+    (async () => {
+      // KLUCZOWE: po F5 sesja wczytuje się z cookies asynchronicznie.
+      // Najpierw ją pobieramy i ustawiamy token Realtime — dopiero potem
+      // subskrybujemy, żeby kanał działał jako zalogowany user (RLS).
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!active) return;
+      if (session?.access_token) {
+        await supabase.realtime.setAuth(session.access_token);
+      }
+
+      channel = supabase
+        .channel(`thread-${currentUserId}-${otherUser.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+            filter: `recipient_id=eq.${currentUserId}`,
+          },
+          (payload) => {
+            const msg = payload.new as MessageRow;
+            // Interesują nas tylko wiadomości od osoby z TEGO wątku.
+            if (msg.sender_id !== otherUser.id) return;
+            appendMessage(msg);
+            // Wątek otwarty → od razu oznaczamy jako przeczytane.
+            markConversationRead(msg.conversation_id);
+          }
+        )
+        .subscribe();
+    })();
+
+    return () => {
+      active = false;
+      if (channel) supabase.removeChannel(channel);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUserId, otherUser.id]);
+
+  // Przewijamy na dół przy każdej nowej wiadomości.
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [initialMessages.length]);
+  }, [messages.length]);
 
   function handleEmojiClick(emojiData: EmojiClickData) {
     const ta = textareaRef.current;
@@ -81,9 +139,11 @@ export default function MessageThread({
         toast.error(res.error);
         return;
       }
+      // Własną wiadomość dopisujemy od razu (Realtime jej nam nie wyśle —
+      // filtr to recipient_id = ja, a tu odbiorcą jest druga osoba).
+      if (res.message) appendMessage(res.message);
       setContent("");
       setShowEmoji(false);
-      router.refresh();
     });
   }
 
@@ -93,13 +153,13 @@ export default function MessageThread({
     <div className="chat-thread">
       {/* ── Lista wiadomości ─────────────────────────────── */}
       <div className="chat-messages">
-        {initialMessages.length === 0 ? (
+        {messages.length === 0 ? (
           <div className="chat-empty">
             <p>To początek Twojej rozmowy z {otherName}.</p>
             <p className="chat-empty-hint">Napisz pierwszą wiadomość poniżej.</p>
           </div>
         ) : (
-          initialMessages.map((msg) => {
+          messages.map((msg) => {
             const day = formatMessageDay(msg.created_at);
             const showDay = day !== lastDay;
             lastDay = day;
