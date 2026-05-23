@@ -3,7 +3,7 @@
 
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { MessageCircle, CornerDownRight, Trash2 } from "lucide-react";
+import { MessageCircle, CornerDownRight, Heart, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   markNotificationRead,
@@ -39,9 +39,15 @@ export default function NotificationItem({
     actor?.nickname ?? actor?.email?.split("@")[0] ?? "Ktoś";
   const actorInitial = getInitial(actor?.nickname ?? actor?.email);
 
-  const targetHref = comment?.target_id
-    ? `/posty/${comment.target_id}#comments`
-    : "/";
+  // Cel nawigacji:
+  //  - LIKE_ON_POST → source_id JEST id posta,
+  //  - reszta (powiadomienia "komentarzowe") → post, na którym jest komentarz.
+  const targetHref =
+    notification.type === "LIKE_ON_POST" && notification.source_id
+      ? `/posty/${notification.source_id}`
+      : comment?.target_id
+      ? `/posty/${comment.target_id}#comments`
+      : "/";
 
   function handleNavigate(e: React.MouseEvent) {
     e.preventDefault();
@@ -85,6 +91,34 @@ export default function NotificationItem({
       summary = (
         <>
           <strong>{actorName}</strong> odpowiedział na Twój komentarz
+          {postTitle && (
+            <>
+              {" "}pod{" "}
+              <strong className="notif-target">«{postTitle}»</strong>
+            </>
+          )}
+        </>
+      );
+      break;
+    case "LIKE_ON_POST":
+      typeIcon = <Heart size={14} className="notif-type-icon" />;
+      summary = (
+        <>
+          <strong>{actorName}</strong> polubił Twój post
+          {postTitle && (
+            <>
+              {" "}
+              <strong className="notif-target">«{postTitle}»</strong>
+            </>
+          )}
+        </>
+      );
+      break;
+    case "LIKE_ON_COMMENT":
+      typeIcon = <Heart size={14} className="notif-type-icon" />;
+      summary = (
+        <>
+          <strong>{actorName}</strong> polubił Twój komentarz
           {postTitle && (
             <>
               {" "}pod{" "}

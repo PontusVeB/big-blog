@@ -1,6 +1,10 @@
 // Typy współdzielone dla modułu powiadomień.
 
-export type NotificationType = "COMMENT_ON_POST" | "REPLY_TO_COMMENT";
+export type NotificationType =
+  | "COMMENT_ON_POST"
+  | "REPLY_TO_COMMENT"
+  | "LIKE_ON_POST"
+  | "LIKE_ON_COMMENT";
 
 export type NotificationActor = {
   id: string;

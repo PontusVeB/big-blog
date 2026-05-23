@@ -66,9 +66,7 @@ model Post {
   editedAt      DateTime? @db.Timestamptz(3) @map("edited_at")
 
   // Kolumna pełnotekstowa do wyszukiwarki (typ Postgres `tsvector`).
-  // Prisma nie obsługuje tsvector natywnie → typ Unsupported (Prisma jej
-  // nie czyta ani nie zapisuje). Wartość utrzymuje trigger SQL
-  // `trg_posts_search_vector`. Indeks GIN tworzony jest w SQL.sql.
+  // Wartość utrzymuje trigger SQL `trg_posts_search_vector`, indeks GIN w SQL.
   searchVector Unsupported("tsvector")? @map("search_vector")
 
   likes    PostLike[]
@@ -152,6 +150,8 @@ model Notification {
 enum NotificationType {
   COMMENT_ON_POST
   REPLY_TO_COMMENT
+  LIKE_ON_POST
+  LIKE_ON_COMMENT
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -191,8 +191,6 @@ model PostTag {
 // ════════════════════════════════════════════════════════════════
 //  Conversation — rozmowa prywatna 1:1
 // ════════════════════════════════════════════════════════════════
-// Kanonicznie: user1Id < user2Id (porządek leksykalny UUID). Dzięki temu
-// para uczestników jest unikalna i łatwo znaleźć istniejącą rozmowę.
 model Conversation {
   id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user1Id   String   @db.Uuid @map("user1_id")
@@ -212,8 +210,6 @@ model Conversation {
 // ════════════════════════════════════════════════════════════════
 //  Message — pojedyncza wiadomość
 // ════════════════════════════════════════════════════════════════
-// recipientId jest zdenormalizowany (w 1:1 to zawsze drugi uczestnik) —
-// dzięki temu licznik nieprzeczytanych to proste WHERE recipient_id = ja.
 model Message {
   id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   conversationId String       @db.Uuid @map("conversation_id")
