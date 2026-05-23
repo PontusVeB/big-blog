@@ -2440,3 +2440,22 @@ img { max-width: 100%; display: block; }
   background: var(--color-surface);
   z-index: 60;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Faza 17 — przycisk "Pokaż więcej" pod listą postów.
+   ════════════════════════════════════════════════════════════════ */
+
+.feed-load-more {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+}
+
+.feed-load-more-btn {
+  padding: 12px 32px;
+  font-size: 15px;
+}
+.feed-load-more-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
