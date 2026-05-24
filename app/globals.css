@@ -2517,3 +2517,121 @@ img { max-width: 100%; display: block; }
     margin-bottom: 36px;
   }
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Faza 21 — kosmetyka: generyczny modal (style zgubione w Fazie 8c).
+   Używany przez LikersModal; nazwy klas są generyczne — przyszłe
+   modale mogą reużyć tych samych styli.
+   ════════════════════════════════════════════════════════════════ */
+
+/* Nakładka — przyciemnia tło, wyśrodkowuje modal. position: fixed,
+   więc modal NIE rozpycha już strony w pionie. */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(2px);
+}
+
+/* Karta modala */
+.modal {
+  width: 100%;
+  max-width: 380px;
+  max-height: 75vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  animation: modal-in 0.15s ease-out;
+}
+@keyframes modal-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-shrink: 0;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--color-border);
+}
+.modal-header h3 {
+  font-size: 17px;
+  margin: 0;
+}
+
+.modal .close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.modal .close:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--color-text);
+}
+
+/* Treść — TU jest scroll. Lista przewija się wewnątrz modala,
+   zamiast rozpychać stronę. */
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+/* Wiersz użytkownika na liście (lajkujący) */
+.user-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  color: var(--color-text);
+  transition: background 0.15s;
+}
+.user-row:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+.user-row .info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.user-row .nick {
+  font-weight: 600;
+  color: var(--color-cream);
+  line-height: 1.3;
+}
+.user-row .role {
+  font-size: 12px;
+  color: var(--color-text-muted);
+}
+
+/* Stany puste / ładowania w modalu */
+.modal-body .empty-row,
+.modal-body .loading-state {
+  padding: 24px 12px;
+  text-align: center;
+  color: var(--color-text-muted);
+  font-size: 14px;
+}

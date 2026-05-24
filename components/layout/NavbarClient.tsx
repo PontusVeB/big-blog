@@ -2,7 +2,7 @@
 // Kliencka część navbara — logo + menu + wyszukiwarka + wiadomości + dzwonek + dropdown usera.
 //
 // Licznik koperty aktualizuje się NA ŻYWO (Supabase Realtime).
-// Faza 16: przed subskrypcją pobieramy sesję i ustawiamy token Realtime —
+// Przed subskrypcją pobieramy sesję i ustawiamy token Realtime —
 // inaczej po F5 kanał subskrybuje się jako "anon" i RLS blokuje zdarzenia.
 
 import { useState, useEffect, useRef } from "react";
@@ -27,7 +27,6 @@ export type NavbarProfile = {
 
 const links = [
   { href: "/", label: "Strona główna" },
-  { href: "/najnowsze", label: "Najnowsze" },
   { href: "/popularne", label: "Popularne" },
   { href: "/o-blogu", label: "O blogu" },
 ];
@@ -59,8 +58,7 @@ export default function NavbarClient({
 
   const initial = (profile?.nickname || profile?.email || "?")[0].toUpperCase();
 
-  // Resync licznika z serwerem po każdym przerenderowaniu navbara
-  // (np. po router.refresh() przy wejściu w wątek — licznik spada).
+  // Resync licznika z serwerem po każdym przerenderowaniu navbara.
   useEffect(() => {
     setLiveMessages(unreadMessages);
   }, [unreadMessages]);
@@ -73,8 +71,6 @@ export default function NavbarClient({
     let active = true;
 
     (async () => {
-      // Po F5 najpierw pobieramy sesję i ustawiamy token Realtime,
-      // dopiero potem subskrybujemy (inaczej RLS blokuje zdarzenia).
       const { data: { session } } = await supabase.auth.getSession();
       if (!active) return;
       if (session?.access_token) {
@@ -93,8 +89,6 @@ export default function NavbarClient({
           },
           (payload) => {
             const senderId = (payload.new as { sender_id: string }).sender_id;
-            // Jeśli właśnie oglądam wątek z tym nadawcą — wiadomość zaraz
-            // zostanie oznaczona jako przeczytana, więc nie podbijamy licznika.
             if (pathnameRef.current === `/wiadomosci/${senderId}`) return;
             setLiveMessages((n) => n + 1);
           }
