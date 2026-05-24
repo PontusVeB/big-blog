@@ -28,7 +28,13 @@ const FLASHES: Record<string, FlashConfig> = {
   profile_saved:   { type: "success", text: "Profil zaktualizowany" },
   logged_in:       { type: "success", text: "Zalogowano" },
   logged_out:      { type: "info",    text: "Wylogowano" },
-  registered:      { type: "success", text: "Witaj w BigBlog! 🎉", description: "Konto utworzone, możesz pisać posty." },
+  registered:      { type: "success", text: "Witaj w BigBlogu! 🎉", description: "Konto utworzone." },
+  // Faza 22: brak uprawnień do tworzenia postów
+  no_permission_create_post: {
+    type: "error",
+    text: "Brak uprawnień",
+    description: "Tworzenie postów wymaga roli Blogera lub wyższej.",
+  },
 };
 
 export default function ToastFlash() {

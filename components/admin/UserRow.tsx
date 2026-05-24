@@ -1,10 +1,10 @@
 "use client";
-// Pojedynczy wiersz tabeli userów + inline edycja + status online.
-// Komórki mają data-label żeby na mobile pokazać etykietę "Rola:", "Status:" itd.
+// Pojedynczy wiersz tabeli userów + inline edycja po rozwinięciu + status online.
+// Faza 22: dodano badge BLOGER (ikona Feather, kolor role-bloger).
 
 import { useState } from "react";
 import Link from "next/link";
-import { Pencil, Lock, Crown, Shield, User as UserIcon } from "lucide-react";
+import { Pencil, Lock, Crown, Shield, Feather, User as UserIcon } from "lucide-react";
 import { formatRelativeDate, getInitial } from "@/lib/posts/utils";
 import type { AdminUserRow } from "@/app/admin/uzytkownicy/page";
 import EditUserForm from "./EditUserForm";
@@ -15,6 +15,7 @@ type Props = {
   canEdit: boolean;
 };
 
+// Mały subkomponent — wskaźnik aktywności (kolor kropki + label)
 function OnlineStatus({ lastSeen }: { lastSeen: string | null }) {
   if (!lastSeen) {
     return (
@@ -59,7 +60,6 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
   return (
     <>
       <div className="admin-users-row">
-        {/* User cell — na mobile renderowany jako header karty (bez data-label) */}
         <div className="admin-user-cell">
           {user.avatar_url ? (
             <img
@@ -79,7 +79,8 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
           </div>
         </div>
 
-        <div data-label="Rola">
+        {/* Kolumna ROLA — badge per każda wartość enuma */}
+        <div>
           {user.role === "MASTER" && (
             <span className="role-badge role-master">
               <Crown size={12} /> Master
@@ -90,6 +91,11 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
               <Shield size={12} /> Admin
             </span>
           )}
+          {user.role === "BLOGER" && (
+            <span className="role-badge role-bloger">
+              <Feather size={12} /> Bloger
+            </span>
+          )}
           {user.role === "USER" && (
             <span className="role-badge role-user">
               <UserIcon size={12} /> User
@@ -97,11 +103,11 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
           )}
         </div>
 
-        <div data-label="Status">
+        <div>
           <OnlineStatus lastSeen={user.last_seen_at} />
         </div>
 
-        <div className="admin-permissions-cell" data-label="Uprawnienia">
+        <div className="admin-permissions-cell">
           {permissions.length === 0 ? (
             <span className="admin-permissions-empty">(z roli)</span>
           ) : (
@@ -113,7 +119,7 @@ export default function UserRow({ user, isSelf, canEdit }: Props) {
           )}
         </div>
 
-        <div className="admin-joined-cell" data-label="Dołączył">
+        <div className="admin-joined-cell">
           {formatRelativeDate(user.created_at)}
         </div>
 

@@ -1,5 +1,6 @@
 "use server";
 // Server Actions dla panelu admina.
+// Faza 22: updateUser obsługuje teraz również rolę BLOGER.
 // Zasady ochrony (3 warstwy):
 //   1. UI (panel pokazuje "Edytuj" tylko MASTEROWI)
 //   2. Server Action (sprawdza role caller + target)
@@ -22,7 +23,7 @@ export type UpdateUserResult = { error?: string };
  */
 export async function updateUser(
   userId: string,
-  newRole: "USER" | "ADMIN",
+  newRole: "USER" | "BLOGER" | "ADMIN",
   newPermissions: string[]
 ): Promise<UpdateUserResult> {
   const supabase = await createClient();
@@ -67,9 +68,9 @@ export async function updateUser(
     };
   }
 
-  // Walidacja roli — MASTER excluded
-  if (newRole !== "USER" && newRole !== "ADMIN") {
-    return { error: "Nowa rola musi być USER lub ADMIN." };
+  // Walidacja roli — MASTER excluded (nadawany tylko przez bazę)
+  if (newRole !== "USER" && newRole !== "BLOGER" && newRole !== "ADMIN") {
+    return { error: "Nowa rola musi być USER, BLOGER lub ADMIN." };
   }
 
   // Filtruj permissions — tylko te z whitelisty

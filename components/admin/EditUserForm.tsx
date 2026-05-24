@@ -1,8 +1,9 @@
 "use client";
 // Inline formularz edycji jednego usera (rola + uprawnienia jako tabela).
+// Faza 22: dropdown ról zastąpiony kartami (USER / BLOGER / ADMIN).
 
 import { useState, useTransition } from "react";
-import { Check } from "lucide-react";
+import { Check, Shield, Feather, User as UserIcon } from "lucide-react";
 import { toast } from "sonner";
 import {
   AVAILABLE_PERMISSIONS,
@@ -25,10 +26,48 @@ type Props = {
   onCancel: () => void;
 };
 
+// Typ ról jakie MASTER może nadawać przez panel (MASTER excluded — tylko przez bazę)
+type EditableRole = "USER" | "BLOGER" | "ADMIN";
+
+function toEditableRole(role: Role): EditableRole {
+  if (role === "ADMIN") return "ADMIN";
+  if (role === "BLOGER") return "BLOGER";
+  return "USER";
+}
+
+// Definicja kart ról — ikona, opis, kolor
+const ROLE_OPTIONS: {
+  value: EditableRole;
+  label: string;
+  description: string;
+  Icon: React.ElementType;
+  cardClass: string;
+}[] = [
+  {
+    value: "USER",
+    label: "User",
+    description: "Komentuje i lajkuje. Nie tworzy postów.",
+    Icon: UserIcon,
+    cardClass: "role-card-user",
+  },
+  {
+    value: "BLOGER",
+    label: "Bloger",
+    description: "Tworzy posty i komentuje. Bez uprawnień moderacji.",
+    Icon: Feather,
+    cardClass: "role-card-bloger",
+  },
+  {
+    value: "ADMIN",
+    label: "Admin",
+    description: "Moderator — usuwa cudze treści, zarządza tagami.",
+    Icon: Shield,
+    cardClass: "role-card-admin",
+  },
+];
+
 export default function EditUserForm({ user, onSaved, onCancel }: Props) {
-  const [role, setRole] = useState<"USER" | "ADMIN">(
-    user.role === "ADMIN" ? "ADMIN" : "USER"
-  );
+  const [role, setRole] = useState<EditableRole>(toEditableRole(user.role));
   const [permissions, setPermissions] = useState<string[]>(
     user.permissions ?? []
   );
@@ -52,43 +91,57 @@ export default function EditUserForm({ user, onSaved, onCancel }: Props) {
     });
   }
 
-  // Domyślne uprawnienia z aktualnie wybranej roli — pokazujemy w kolumnie "Z roli"
+  // Domyślne uprawnienia z aktualnie wybranej roli — kolumna "Z roli"
   const rolePermissions = ROLE_PERMISSIONS[role] ?? [];
+
+  const displayName = user.nickname ?? user.email;
 
   return (
     <div className="admin-edit-form">
-      <h4>Edytuj: {user.nickname ?? user.email}</h4>
+      <h4>Edytuj: {displayName}</h4>
 
+      {/* ── WYBÓR ROLI — karty zamiast select ─────────── */}
       <div className="admin-edit-field">
         <label>Rola</label>
-        <select
-          value={role}
-          onChange={(e) => setRole(e.target.value as "USER" | "ADMIN")}
-          className="input"
-        >
-          <option value="USER">USER (regularny)</option>
-          <option value="ADMIN">ADMIN (moderator)</option>
-        </select>
-        <div className="admin-edit-help">
-          MASTER można nadać tylko bezpośrednio w bazie (SQL Editor Supabase).
-          ADMIN automatycznie ma uprawnienia moderacji.
+        <div className="role-cards">
+          {ROLE_OPTIONS.map(({ value, label, description, Icon, cardClass }) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => setRole(value)}
+              className={`role-card ${cardClass} ${role === value ? "selected" : ""}`}
+            >
+              <span className="role-card-icon">
+                <Icon size={18} />
+              </span>
+              <span className="role-card-body">
+                <span className="role-card-name">{label}</span>
+                <span className="role-card-desc">{description}</span>
+              </span>
+            </button>
+          ))}
         </div>
+        <p className="admin-edit-help">
+          Rola <strong>MASTER</strong> nadawana tylko bezpośrednio w bazie
+          (Supabase SQL Editor).
+        </p>
       </div>
 
+      {/* ── TABELA UPRAWNIEŃ ────────────────────────────── */}
       <div className="admin-edit-field">
-        <label>Uprawnienia</label>
+        <label>Uprawnienia indywidualne</label>
         <table className="permissions-table">
           <thead>
             <tr>
               <th>Uprawnienie</th>
               <th>Opis</th>
               <th title="Czy ta rola domyślnie ma to uprawnienie">Z roli</th>
-              <th title="Czy nadać ekstra niezależnie od roli">Nadane</th>
+              <th title="Nadaj ekstra, niezależnie od roli">Nadane</th>
             </tr>
           </thead>
           <tbody>
             {AVAILABLE_PERMISSIONS.map((perm) => {
-              const fromRole = rolePermissions.includes(perm);
+              const fromRole = (rolePermissions as readonly string[]).includes(perm);
               const explicit = permissions.includes(perm);
               return (
                 <tr key={perm}>
@@ -122,13 +175,16 @@ export default function EditUserForm({ user, onSaved, onCancel }: Props) {
             })}
           </tbody>
         </table>
-        <div className="admin-edit-help">
-          "Z roli" — automatycznie z wybranej roli. "Nadane" — extra, zapisane
-          w polu <code>permissions[]</code>. Suma tych dwóch determinuje co
-          user faktycznie może zrobić.
-        </div>
+        <p className="admin-edit-help">
+          <strong>Z roli</strong> — automatycznie z wybranej roli.{" "}
+          <strong>Nadane</strong> — extra dla tego użytkownika, zapisane w{" "}
+          <code>permissions[]</code>. Suma obu daje realne możliwości usera.
+          Przykład: USER z nadanym <code>posts.create</code> może pisać posty
+          bez awansu na Blogera.
+        </p>
       </div>
 
+      {/* ── PRZYCISKI ──────────────────────────────────── */}
       <div className="admin-edit-actions">
         <button
           type="button"

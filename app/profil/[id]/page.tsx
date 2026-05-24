@@ -1,12 +1,13 @@
 // Publiczny profil usera — hero + 4 statystyki + ostatnie posty (3) + ostatnie komentarze (3).
 // Faza 14: na cudzym profilu pojawia się przycisk "Napisz wiadomość".
+// Faza 22: dodano badge BLOGER obok istniejących Admin/Master.
 
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   UserCog, Calendar, FilePen, MessageCircle, Heart, HeartHandshake,
-  Shield, Crown, Mail,
+  Shield, Crown, Feather, Mail,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import PostCard from "@/components/post/PostCard";
@@ -19,7 +20,7 @@ type ProfileData = {
   nickname: string | null;
   bio: string | null;
   avatar_url: string | null;
-  role: "MASTER" | "ADMIN" | "USER";
+  role: "MASTER" | "ADMIN" | "BLOGER" | "USER";
   created_at: string;
 };
 
@@ -189,14 +190,22 @@ export default async function ProfilePage({
         <div className="profile-info">
           <h1 className="profile-name">
             <span>{displayName}</span>
+            {/* Badge MASTER — właściciel */}
             {profile.role === "MASTER" && (
               <span className="role-badge role-master">
                 <Crown size={12} /> Master
               </span>
             )}
+            {/* Badge ADMIN — moderator */}
             {profile.role === "ADMIN" && (
               <span className="role-badge role-admin">
                 <Shield size={12} /> Admin
+              </span>
+            )}
+            {/* Badge BLOGER — twórca treści (faza 22) */}
+            {profile.role === "BLOGER" && (
+              <span className="role-badge role-bloger">
+                <Feather size={12} /> Bloger
               </span>
             )}
           </h1>

@@ -1,5 +1,6 @@
 "use server";
 // Server Actions dla postów: tworzenie, edycja, usuwanie, lajkowanie + obsługa tagów.
+// Faza 22: createPost sprawdza uprawnienie posts.create (warstwa 2 z 3).
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -26,7 +27,7 @@ function parseTagIds(raw: FormDataEntryValue | null): string[] {
       return parsed;
     }
   } catch {
-    // ignore
+    // ignorujemy błędy parsowania
   }
   return [];
 }
@@ -50,6 +51,18 @@ export async function createPost(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Musisz być zalogowany." };
+
+  // Warstwa 2: sprawdzenie uprawnienia posts.create przed zapisem do bazy.
+  // Warstwa 3 (RLS) blokuje niezależnie — tu dajemy czytelny komunikat.
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("role, permissions")
+    .eq("id", user.id)
+    .single<{ role: Role; permissions: string[] | null }>();
+
+  if (!hasPermission(profile, "posts.create")) {
+    return { error: "Nie masz uprawnień do tworzenia postów. Poproś administratora o rolę Blogera." };
+  }
 
   const { data: post, error } = await supabase
     .from("posts")

@@ -43,9 +43,11 @@ model Profile {
   @@map("profiles")
 }
 
+// UWAGA: każda wartość enuma w OSOBNEJ linii — jedna linia → ~30 błędów Prismy!
 enum Role {
   MASTER
   ADMIN
+  BLOGER
   USER
 }
 
@@ -136,7 +138,7 @@ model Notification {
   recipientId String           @db.Uuid @map("recipient_id")
   recipient   Profile          @relation("recipientNotifications", fields: [recipientId], references: [id], onDelete: Cascade)
   actorId     String?          @db.Uuid @map("actor_id")
-  actor       Profile?         @relation("actorNotifications", fields: [actorId], references: [id], onDelete: SetNull)
+  actor       Profile?         @relation("actorNotifications", fields: [actorId], references: [id], onDelete: Cascade)
   type        NotificationType
   sourceType  String?          @db.VarChar(50) @map("source_type")
   sourceId    String?          @db.Uuid @map("source_id")

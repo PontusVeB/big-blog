@@ -1,4 +1,6 @@
-// Strona nowego posta. Tytuł karty bazuje na template z layout.tsx ("%s • BigBlog").
+// Strona nowego posta.
+// Faza 22: guard sprawdza uprawnienie posts.create — USER bez awansu na BLOGER
+// zostaje przekierowany na stronę główną z komunikatem.
 
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -13,15 +15,23 @@ export const metadata: Metadata = {
 export default async function NewPostPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+
+  // Niezalogowany → logowanie
   if (!user) redirect("/logowanie?next=/posty/nowy");
 
-  // Sprawdzamy czy user może tworzyć tagi (rola ADMIN/MASTER lub override w permissions[])
+  // Pobieramy profil (rola + indywidualne uprawnienia)
   const { data: profile } = await supabase
     .from("profiles")
     .select("role, permissions")
     .eq("id", user.id)
     .single<{ role: Role; permissions: string[] | null }>();
 
+  // Brak uprawnienia posts.create → strona główna z flash-em
+  if (!hasPermission(profile, "posts.create")) {
+    redirect("/?flash=no_permission_create_post");
+  }
+
+  // Czy user może też tworzyć tagi (rola ADMIN/MASTER lub grant w permissions[])?
   const canCreateTags = hasPermission(profile, "tags.create");
 
   return (
