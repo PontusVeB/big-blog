@@ -2459,3 +2459,61 @@ img { max-width: 100%; display: block; }
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Faza 20 — strona /popularne (2 sekcje top 3 postów).
+   ════════════════════════════════════════════════════════════════ */
+
+.popular-page {
+  max-width: 1200px;
+  margin: 0 auto 80px;
+  padding: 40px 24px 0;
+}
+
+.popular-header {
+  margin-bottom: 36px;
+}
+.popular-header h1 {
+  font-size: clamp(26px, 4vw, 34px);
+  margin-bottom: 6px;
+}
+.popular-header p {
+  color: var(--color-text-muted);
+  font-size: 15px;
+}
+
+.popular-section {
+  margin-bottom: 48px;
+}
+.popular-section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 22px;
+  margin-bottom: 20px;
+}
+.popular-section-title svg {
+  color: var(--color-teal);
+  flex-shrink: 0;
+}
+
+.popular-empty {
+  color: var(--color-text-muted);
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.popular-cta {
+  display: flex;
+  justify-content: center;
+  margin-top: 8px;
+}
+
+@media (max-width: 639px) {
+  .popular-page {
+    padding: 28px 16px 0;
+  }
+  .popular-section {
+    margin-bottom: 36px;
+  }
+}
