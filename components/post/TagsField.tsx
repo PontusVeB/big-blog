@@ -1,18 +1,20 @@
 "use client";
-// Pole tagów w formularzu posta z autocomplete.
+// Pole tagów w formularzu posta — combobox z podpowiedziami.
 //
-// Funkcjonalność:
-//   - Lista aktualnie wybranych tagów (pille, usuwalne X-em)
-//   - Input z debounced query do bazy tagów
-//   - Dropdown sugestii (filtruje już wybrane)
-//   - Opcja "+ Utwórz nowy tag" jeśli user ma uprawnienie tags.create
-//     i wpisany tekst nie pasuje do istniejącego
-//   - Hidden input "tags" z JSON.stringify(tagIds) — submitowany razem z formularzem
+// Zachowanie (faza 24):
+//   - Kliknięcie / focus otwiera dropdown ze WSZYSTKIMI dostępnymi tagami
+//   - Wpisanie frazy filtruje listę lokalnie (bez debounce, dane już w RAM)
+//   - Opcja "+ Utwórz nowy tag" dla ADMIN/MASTER gdy fraza ≥ 2 znaki i brak dokładnego match
+//   - Nowo utworzony tag trafia od razu do lokalnej listy (nie trzeba odświeżać)
+//   - Wybrane tagi = pille z przyciskiem X (usuwanie)
+//   - Hidden input "tags" z JSON tablicą ID — submitowany z formularzem
+//   - Limit: max 5 tagów na post
 //
-// Limit: max 5 tagów na post (heurystyka UX — zapobiega spamowi).
+// Poprzednie rozwiązanie (faza 10): debounced fetch po każdym wpisanym znaku,
+// dropdown nie otwierał się bez wpisania tekstu.
 
 import { useEffect, useRef, useState } from "react";
-import { X, Plus, Tag as TagIcon } from "lucide-react";
+import { X, Plus, Tag as TagIcon, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { createClient } from "@/lib/supabase/client";
 import { createTag } from "@/lib/tags/actions";
@@ -29,11 +31,30 @@ const MAX_TAGS = 5;
 
 export default function TagsField({ initialTags = [], canCreateTags }: Props) {
   const [selected, setSelected] = useState<TagInfo[]>(initialTags);
+  // Wszystkie tagi ładowane raz — filtrowanie odbywa się lokalnie.
+  const [allTags, setAllTags] = useState<TagInfo[]>([]);
   const [query, setQuery] = useState("");
-  const [suggestions, setSuggestions] = useState<TagInfo[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Załaduj wszystkie tagi raz przy montowaniu komponentu.
+  useEffect(() => {
+    async function loadTags() {
+      setIsLoading(true);
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("tags")
+        .select("id, name, slug, color")
+        .order("name", { ascending: true })
+        .returns<TagInfo[]>();
+      setAllTags(data ?? []);
+      setIsLoading(false);
+    }
+    loadTags();
+  }, []);
 
   // Zamknięcie dropdownu po kliknięciu poza komponent.
   useEffect(() => {
@@ -46,37 +67,31 @@ export default function TagsField({ initialTags = [], canCreateTags }: Props) {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Debounced fetch sugestii. Odpalamy ~250 ms po ostatnim wpisanym znaku.
-  useEffect(() => {
-    if (query.trim().length < 1) {
-      setSuggestions([]);
-      return;
-    }
-    const handle = setTimeout(async () => {
-      const supabase = createClient();
-      const { data } = await supabase
-        .from("tags")
-        .select("id, name, slug, color")
-        .ilike("name", `%${query.trim()}%`)
-        .order("name", { ascending: true })
-        .limit(8)
-        .returns<TagInfo[]>();
-      // Filtrujemy już wybrane.
-      const selectedIds = new Set(selected.map((t) => t.id));
-      setSuggestions((data ?? []).filter((t) => !selectedIds.has(t.id)));
-    }, 250);
-    return () => clearTimeout(handle);
-  }, [query, selected]);
+  // Filtracja lokalna — synchroniczna, bez sieciowych opóźnień.
+  const selectedIds = new Set(selected.map((t) => t.id));
+  const filtered = allTags.filter((t) => {
+    if (selectedIds.has(t.id)) return false;
+    if (!query.trim()) return true; // bez frazy → wszystkie niezmienne
+    return t.name.toLowerCase().includes(query.trim().toLowerCase());
+  });
+
+  // Czy fraza dokładnie pasuje do istniejącego tagu (case-insensitive)?
+  const exactMatch = allTags.some(
+    (t) => t.name.toLowerCase() === query.trim().toLowerCase()
+  );
+  const showCreateOption =
+    canCreateTags && query.trim().length >= 2 && !exactMatch && !isCreating;
 
   function addTag(tag: TagInfo) {
     if (selected.length >= MAX_TAGS) {
-      toast.error(`Max ${MAX_TAGS} tagów na post.`);
+      toast.error(`Można wybrać maksymalnie ${MAX_TAGS} tagów.`);
       return;
     }
-    if (selected.some((t) => t.id === tag.id)) return;
+    if (selectedIds.has(tag.id)) return;
     setSelected((prev) => [...prev, tag]);
     setQuery("");
-    setSuggestions([]);
+    // Zostaw dropdown otwarty — user może chcieć dodać kolejny tag.
+    inputRef.current?.focus();
   }
 
   function removeTag(tagId: string) {
@@ -87,7 +102,7 @@ export default function TagsField({ initialTags = [], canCreateTags }: Props) {
     const name = query.trim();
     if (!name) return;
     if (selected.length >= MAX_TAGS) {
-      toast.error(`Max ${MAX_TAGS} tagów na post.`);
+      toast.error(`Można wybrać maksymalnie ${MAX_TAGS} tagów.`);
       return;
     }
     setIsCreating(true);
@@ -99,17 +114,13 @@ export default function TagsField({ initialTags = [], canCreateTags }: Props) {
     }
     if (tag) {
       toast.success(`Utworzono tag "${tag.name}"`);
+      // Dopisz nowy tag do lokalnej listy (alfabetycznie) — bez przeładowania.
+      setAllTags((prev) =>
+        [...prev, tag].sort((a, b) => a.name.localeCompare(b.name, "pl"))
+      );
       addTag(tag);
     }
   }
-
-  // Czy wpisany text dokładnie odpowiada istniejącej sugestii?
-  const exactMatch = suggestions.some(
-    (t) => t.name.toLowerCase() === query.trim().toLowerCase()
-  );
-  // Czy user może utworzyć nowy z wpisanego tekstu?
-  const showCreateOption =
-    canCreateTags && query.trim().length >= 2 && !exactMatch && !isCreating;
 
   return (
     <div className="tags-field" ref={wrapperRef}>
@@ -120,7 +131,7 @@ export default function TagsField({ initialTags = [], canCreateTags }: Props) {
         value={JSON.stringify(selected.map((t) => t.id))}
       />
 
-      {/* Wybrane tagi (pille) */}
+      {/* Wybrane tagi jako pille z możliwością usunięcia. */}
       {selected.length > 0 && (
         <div className="tags-pills">
           {selected.map((tag) => (
@@ -144,15 +155,16 @@ export default function TagsField({ initialTags = [], canCreateTags }: Props) {
         </div>
       )}
 
-      {/* Input — disable jak osiągnięto limit */}
+      {/* Combobox — input + dropdown. Chowany gdy osiągnięto limit. */}
       {selected.length < MAX_TAGS && (
         <div className="tags-input-wrap">
           <input
+            ref={inputRef}
             type="text"
-            className="input"
+            className="input tags-combobox-input"
             placeholder={
               selected.length === 0
-                ? "Wpisz tag i wybierz z listy…"
+                ? "Wybierz lub wyszukaj tag…"
                 : "Dodaj kolejny tag…"
             }
             value={query}
@@ -164,54 +176,90 @@ export default function TagsField({ initialTags = [], canCreateTags }: Props) {
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
-                if (suggestions.length > 0) {
-                  addTag(suggestions[0]);
+                if (filtered.length > 0) {
+                  // Enter wybiera pierwszy pasujący tag z listy.
+                  addTag(filtered[0]);
                 } else if (showCreateOption) {
                   handleCreateNew();
                 }
               }
-              if (e.key === "Escape") setIsOpen(false);
+              if (e.key === "Escape") {
+                setIsOpen(false);
+                setQuery("");
+              }
             }}
             autoComplete="off"
+            aria-expanded={isOpen}
+            aria-haspopup="listbox"
           />
+          {/* Chevron wskazuje, że to combobox — klikalny, toggleuje dropdown. */}
+          <button
+            type="button"
+            className="tags-combobox-chevron"
+            tabIndex={-1}
+            aria-label="Rozwiń listę tagów"
+            onMouseDown={(e) => {
+              e.preventDefault(); // nie kradnij focusu z inputa
+              setIsOpen((prev) => !prev);
+              inputRef.current?.focus();
+            }}
+          >
+            <ChevronDown size={16} />
+          </button>
 
-          {isOpen && (query.trim().length > 0 || suggestions.length > 0) && (
-            <div className="tags-dropdown">
-              {suggestions.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  className="tags-dropdown-item"
-                  onClick={() => addTag(tag)}
-                >
-                  <span
-                    className="tag-pill-dot"
-                    style={{ backgroundColor: tag.color ?? "var(--color-accent)" }}
-                  />
-                  <span>{tag.name}</span>
-                </button>
-              ))}
+          {isOpen && (
+            <div className="tags-dropdown" role="listbox">
+              {isLoading ? (
+                <div className="tags-dropdown-empty">Ładowanie tagów…</div>
+              ) : filtered.length > 0 ? (
+                filtered.map((tag) => (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    className="tags-dropdown-item"
+                    role="option"
+                    onMouseDown={(e) => {
+                      // preventDefault zapobiega utracie focusu przez input przed kliknięciem.
+                      e.preventDefault();
+                      addTag(tag);
+                    }}
+                  >
+                    <span
+                      className="tag-pill-dot"
+                      style={{ backgroundColor: tag.color ?? "var(--color-accent)" }}
+                    />
+                    <span>{tag.name}</span>
+                  </button>
+                ))
+              ) : (
+                !showCreateOption && (
+                  <div className="tags-dropdown-empty">
+                    {query.trim()
+                      ? canCreateTags
+                        ? "Brak pasujących tagów. Wpisz min. 2 znaki, by utworzyć nowy."
+                        : "Brak pasujących tagów."
+                      : "Nie ma jeszcze żadnych tagów."}
+                  </div>
+                )
+              )}
 
               {showCreateOption && (
                 <button
                   type="button"
                   className="tags-dropdown-item tags-dropdown-create"
-                  onClick={handleCreateNew}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    handleCreateNew();
+                  }}
                   disabled={isCreating}
                 >
                   <Plus size={14} />
                   <span>
-                    Utwórz nowy tag: <strong>"{query.trim()}"</strong>
+                    {isCreating
+                      ? "Tworzenie…"
+                      : <>Utwórz nowy tag: <strong>"{query.trim()}"</strong></>}
                   </span>
                 </button>
-              )}
-
-              {suggestions.length === 0 && !showCreateOption && query.trim().length > 0 && (
-                <div className="tags-dropdown-empty">
-                  {canCreateTags
-                    ? "Wpisz min. 2 znaki, aby utworzyć nowy tag."
-                    : "Brak pasujących tagów. Nie masz uprawnień do tworzenia nowych — poproś admina."}
-                </div>
               )}
             </div>
           )}
@@ -220,7 +268,7 @@ export default function TagsField({ initialTags = [], canCreateTags }: Props) {
 
       <div className="field-help">
         {selected.length}/{MAX_TAGS} tagów wybranych.
-        {!canCreateTags && " Możesz wybierać tylko z istniejących."}
+        {!canCreateTags && " Możesz wybierać tylko z istniejących tagów."}
       </div>
     </div>
   );

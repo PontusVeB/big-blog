@@ -1,7 +1,11 @@
 "use client";
 // Kliencka część navbara — logo + menu + wyszukiwarka + wiadomości + dzwonek + dropdown usera.
 //
-// Licznik koperty aktualizuje się NA ŻYWO (Supabase Realtime).
+// Faza 22b: prop canPost (boolean) kontroluje widoczność "Nowy post"
+// we wszystkich trzech miejscach: pasek, dropdown usera, menu mobilne.
+// canPost jest liczony serwerowo w Navbar.tsx przez hasPermission —
+// uwzględnia rolę I per-user grant posts.create. Nie liczymy tu z samego role.
+//
 // Przed subskrypcją pobieramy sesję i ustawiamy token Realtime —
 // inaczej po F5 kanał subskrybuje się jako "anon" i RLS blokuje zdarzenia.
 
@@ -22,7 +26,7 @@ export type NavbarProfile = {
   nickname: string | null;
   avatar_url: string | null;
   email: string;
-  role: "MASTER" | "ADMIN" | "USER";
+  role: "MASTER" | "ADMIN" | "BLOGER" | "USER";
 } | null;
 
 const links = [
@@ -36,6 +40,9 @@ type Props = {
   unreadCount: number;
   unreadMessages: number;
   userId: string | null;
+  // Czy zalogowany user może tworzyć posty? Obliczone serwerowo przez
+  // hasPermission(profile, 'posts.create') — uwzględnia rolę + per-user grant.
+  canPost: boolean;
 };
 
 export default function NavbarClient({
@@ -43,6 +50,7 @@ export default function NavbarClient({
   unreadCount,
   unreadMessages,
   userId,
+  canPost,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -144,9 +152,12 @@ export default function NavbarClient({
 
         {profile ? (
           <>
-            <Link href="/posty/nowy" className="btn btn-primary navbar-new-post">
-              <Plus size={16} /> Nowy post
-            </Link>
+            {/* (1) Przycisk w pasku navbara — tylko dla tych z posts.create */}
+            {canPost && (
+              <Link href="/posty/nowy" className="btn btn-primary navbar-new-post">
+                <Plus size={16} /> Nowy post
+              </Link>
+            )}
 
             {/* Wiadomości — koperta z licznikiem nieprzeczytanych (live) */}
             <Link
@@ -209,9 +220,12 @@ export default function NavbarClient({
                   <Link href="/profil/edycja" onClick={() => setUserMenuOpen(false)}>
                     <UserCog size={16} /> Edycja profilu
                   </Link>
-                  <Link href="/posty/nowy" onClick={() => setUserMenuOpen(false)}>
-                    <FilePen size={16} /> Nowy post
-                  </Link>
+                  {/* (2) Dropdown z avatara — tylko dla tych z posts.create */}
+                  {canPost && (
+                    <Link href="/posty/nowy" onClick={() => setUserMenuOpen(false)}>
+                      <FilePen size={16} /> Nowy post
+                    </Link>
+                  )}
                   <Link href="/wiadomosci" onClick={() => setUserMenuOpen(false)}>
                     <Mail size={16} /> Wiadomości
                     {liveMessages > 0 && (
@@ -274,9 +288,12 @@ export default function NavbarClient({
           ))}
           {profile ? (
             <>
-              <Link href="/posty/nowy" onClick={() => setMenuOpen(false)}>
-                <Plus size={16} /> Nowy post
-              </Link>
+              {/* (3) Menu mobilne — tylko dla tych z posts.create */}
+              {canPost && (
+                <Link href="/posty/nowy" onClick={() => setMenuOpen(false)}>
+                  <Plus size={16} /> Nowy post
+                </Link>
+              )}
               <Link href="/wiadomosci" onClick={() => setMenuOpen(false)}>
                 <Mail size={16} /> Wiadomości
                 {liveMessages > 0 && (

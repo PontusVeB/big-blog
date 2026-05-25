@@ -2739,3 +2739,31 @@ img { max-width: 100%; display: block; }
     grid-template-columns: 1fr;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Faza 24 — tagi: chevron w comboboxie tagów
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Wrapper input-wrap już ma position: relative — korzystamy z tego. */
+.tags-combobox-input {
+  /* Miejsce na chevron po prawej stronie */
+  padding-right: 36px;
+}
+
+.tags-combobox-chevron {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+}
+.tags-combobox-chevron:hover {
+  color: var(--color-text);
+}

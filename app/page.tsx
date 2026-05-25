@@ -1,5 +1,9 @@
-// Strona główna — lista postów (po 6, z przyciskiem "Pokaż więcej") + filtr po tagach.
+// Strona główna — lista postów (po 6, z "Pokaż więcej") + filtr po tagach.
+//
 // Faza 22: FAB i CTA "Nowy post" widoczne tylko dla użytkowników z posts.create.
+// Faza 24 (fix): przywrócony key={`feed-${activeSlug}`} na PostFeed — naprawia brak
+// odświeżenia listy postów po kliknięciu tagu. Kliencki useState trzyma starą wartość
+// gdy propsy zmieniają się bez remountu komponentu (patrz gotchas.md).
 
 import Link from "next/link";
 import { PenLine } from "lucide-react";
@@ -24,8 +28,8 @@ export default async function HomePage({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Pobieramy profil zalogowanego usera (potrzebujemy roli + permissions).
-  // Tylko gdy user jest zalogowany — null dla anonimów.
+  // Sprawdzamy uprawnienie posts.create serwerowo — boolean trafia do klienta,
+  // a nie cała tablica permissions[].
   let canCreatePost = false;
   if (user) {
     const { data: profile } = await supabase
@@ -79,7 +83,10 @@ export default async function HomePage({
         </div>
 
         {hasPosts ? (
+          /* key zależny od filtra → zmiana tagu = świeży mount PostFeed
+             = useState dostaje nowe initialPosts zamiast trzymać stare. */
           <PostFeed
+            key={`feed-${activeSlug ?? "all"}`}
             initialPosts={posts}
             initialHasMore={hasMore}
             tagSlug={activeSlug}
@@ -103,7 +110,6 @@ export default async function HomePage({
                 Napisz pierwszy post
               </Link>
             ) : user ? (
-              // Zalogowany, ale bez uprawnień — nie pokazujemy "Napisz post"
               <p className="text-muted">
                 Skontaktuj się z administratorem, żeby zacząć pisać posty.
               </p>
@@ -116,7 +122,7 @@ export default async function HomePage({
         )}
       </section>
 
-      {/* Pływający przycisk — tylko dla tych z uprawnieniem posts.create */}
+      {/* FAB — tylko dla użytkowników z uprawnieniem posts.create */}
       {canCreatePost && <NewPostFab />}
     </>
   );
