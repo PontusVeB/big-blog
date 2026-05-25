@@ -1,9 +1,11 @@
 // Navbar — Server Component. Pobiera profil, liczniki powiadomień i wiadomości.
 // Faza 22b: dodano `permissions` do selecta i oblicza canPost serwerowo
 // przez hasPermission — uwzględnia zarówno rolę jak i per-user grant.
+// Faza 24b (hotfix): dodano import `Role` — TypeScript wymagał dokładnego
+// typu zamiast `string` przy rzutowaniu profileData dla hasPermission.
 
 import { createClient } from "@/lib/supabase/server";
-import { hasPermission } from "@/lib/auth/permissions";
+import { hasPermission, type Role } from "@/lib/auth/permissions";
 import NavbarClient, { type NavbarProfile } from "./NavbarClient";
 
 export default async function Navbar() {
@@ -43,7 +45,7 @@ export default async function Navbar() {
     // Obliczamy canPost SERWEROWO: hasPermission sprawdza rolę + permissions[].
     // NIE przekazujemy permissions do klienta — tylko gotowy boolean.
     canPost = hasPermission(
-      profileData as { role: string; permissions: string[] | null } | null,
+      profileData as { role: Role; permissions: string[] | null } | null,
       "posts.create"
     );
 
